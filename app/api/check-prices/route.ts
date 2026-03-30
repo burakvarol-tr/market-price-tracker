@@ -70,11 +70,15 @@ export async function GET() {
       changedCount: changedProducts.length,
       changedProducts,
     });
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json(
-      { ok: false, message: "Kontrol sırasında hata oldu" },
-      { status: 500 }
-    );
-  }
+  } catch (error: any) {
+  console.error(error);
+
+  return NextResponse.json(
+    {
+      ok: false,
+      message: error.message || "hata",
+    },
+    { status: 500 }
+  );
+}
 }

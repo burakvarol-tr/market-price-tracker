@@ -1,9 +1,22 @@
 import admin from "firebase-admin";
-import serviceAccount from "@/lib/firebaseKey.json";
+
+function getPrivateKey() {
+  const key = process.env.FIREBASE_PRIVATE_KEY;
+
+  if (!key) {
+    throw new Error("FIREBASE_PRIVATE_KEY eksik");
+  }
+
+  return key.replace(/\\n/g, "\n");
+}
 
 if (!admin.apps.length) {
   admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: getPrivateKey(),
+    }),
   });
 }
 

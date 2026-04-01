@@ -93,3 +93,43 @@ export async function getProductHistory(sku: string) {
     history,
   };
 }
+
+export async function getAllProductsWithHistory() {
+  const snapshot = await db
+    .collection(PRODUCTS_COLLECTION)
+    .orderBy("name", "asc")
+    .get();
+
+  const items = await Promise.all(
+    snapshot.docs.map(async (doc) => {
+      const product = doc.data();
+
+      const historySnapshot = await doc.ref
+        .collection("history")
+        .orderBy("checkedAt", "desc")
+        .limit(2)
+        .get();
+
+      const history = historySnapshot.docs.map((h) => ({
+        id: h.id,
+        ...h.data(),
+      }));
+
+      const latest = history[0] || null;
+      const previous = history[1] || null;
+
+      return {
+        sku: product?.sku ?? doc.id,
+        name: product?.name ?? "İsimsiz ürün",
+        url: product?.url ?? null,
+        lastPrice: product?.lastPrice ?? null,
+        lastDiscountedPrice: product?.lastDiscountedPrice ?? null,
+        updatedAt: product?.updatedAt ?? null,
+        latest,
+        previous,
+      };
+    })
+  );
+
+  return items;
+}

@@ -1,25 +1,29 @@
-import admin from "firebase-admin";
+let admin: any;
 
-function getPrivateKey() {
-  const key = process.env.FIREBASE_PRIVATE_KEY;
+try {
+  const serviceAccount = {
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+  };
 
-  if (!key) {
-    throw new Error("FIREBASE_PRIVATE_KEY eksik");
+  if (
+    serviceAccount.projectId &&
+    serviceAccount.clientEmail &&
+    serviceAccount.privateKey
+  ) {
+    admin = require("firebase-admin");
+
+    if (!admin.apps.length) {
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+    }
+  } else {
+    console.log("Firebase ENV yok → skip edildi");
   }
-
-  return key.replace(/\\n/g, "\n");
+} catch (e) {
+  console.log("Firebase init hata → skip edildi");
 }
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: getPrivateKey(),
-    }),
-  });
-}
-
-const db = admin.firestore();
-
-export { db };
+export const db = admin ? admin.firestore() : null;

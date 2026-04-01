@@ -135,7 +135,7 @@ export default async function ReportPage({ searchParams }: PageProps) {
           }}
         >
           <InfoCard title="Toplam Ürün" value={String(products.length)} />
-          <InfoCard title="İşaretli Ürün" value={String(changedCount)} />
+          <InfoCard title="Bugün Değişen" value={String(changedCount)} />
           <InfoCard title="Rapor" value="Hazır" />
           <InfoCard title="Durum" value="Aktif" />
         </div>
@@ -178,8 +178,10 @@ export default async function ReportPage({ searchParams }: PageProps) {
               <tbody>
                 {products.map((p) => {
                   const percent = getPercent(p.oldPrice, p.newPrice);
-                  const isUp = percent && Number(percent) > 0;
-                  const isDown = percent && Number(percent) < 0;
+                  const percentNumber = percent ? Number(percent) : null;
+                  const isUp = percentNumber != null && percentNumber > 0;
+                  const isDown = percentNumber != null && percentNumber < 0;
+                  const isSame = percentNumber != null && percentNumber === 0;
                   const isChanged = changedSet.has(p.sku);
 
                   return (
@@ -198,7 +200,11 @@ export default async function ReportPage({ searchParams }: PageProps) {
                         style={{
                           ...tdCenter,
                           fontWeight: 700,
-                          color: isUp ? "#22c55e" : isDown ? "#ef4444" : "white",
+                          color: isUp
+                            ? "#22c55e"
+                            : isDown
+                            ? "#ef4444"
+                            : "white",
                         }}
                       >
                         {isUp ? "▲ " : isDown ? "▼ " : ""}
@@ -206,7 +212,23 @@ export default async function ReportPage({ searchParams }: PageProps) {
                       </td>
 
                       <td style={tdCenter}>
-                        {percent ? (
+                        {percentNumber == null ? (
+                          <span style={{ color: "#94a3b8" }}>-</span>
+                        ) : isSame ? (
+                          <span
+                            style={{
+                              display: "inline-block",
+                              padding: "6px 10px",
+                              borderRadius: 999,
+                              fontSize: 12,
+                              fontWeight: 700,
+                              background: "rgba(148,163,184,0.14)",
+                              color: "#94a3b8",
+                            }}
+                          >
+                            %0.0
+                          </span>
+                        ) : (
                           <span
                             style={{
                               display: "inline-block",
@@ -220,10 +242,8 @@ export default async function ReportPage({ searchParams }: PageProps) {
                               color: isUp ? "#22c55e" : "#ef4444",
                             }}
                           >
-                            {isUp ? "▲" : "▼"} %{Math.abs(Number(percent)).toFixed(1)}
+                            {isUp ? "▲" : "▼"} %{Math.abs(percentNumber).toFixed(1)}
                           </span>
-                        ) : (
-                          <span style={{ color: "#94a3b8" }}>-</span>
                         )}
                       </td>
 

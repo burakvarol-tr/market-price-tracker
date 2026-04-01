@@ -1,60 +1,88 @@
-export type ProductItem = {
-  name: string;
+export type A101ProductInput = {
   sku: string;
+  name: string;
+  url?: string;
 };
 
-export type ProductWithPrice = {
-  name: string;
+export type A101ProductResult = {
   sku: string;
-  price: string;
-  stock: string;
+  name: string;
+  price: number;
+  discountedPrice?: number | null;
+  priceText?: string;
+  discountedPriceText?: string;
+  url?: string;
 };
 
-async function fetchA101Product(sku: string) {
-  const url = `https://rio.a101.com.tr/dbmk89vnr/CALL/Store/getProductBySku/VS032?sku=${sku}&channel=SLOT&__culture=tr-TR&__platform=web&data=e30%3D&__isbase64=true`;
-
-  const res = await fetch(url, {
-    headers: {
-      Accept: "application/json",
-      "A101-User-Agent": "web-2.3.9",
-    },
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
-    throw new Error(`İstek başarısız: ${res.status}`);
+function parsePrice(value: unknown): number | null {
+  if (typeof value === "number" && !Number.isNaN(value)) {
+    return value;
   }
 
-  const data = await res.json();
+  if (typeof value === "string") {
+    const normalized = value.replace(",", ".").replace(/[^\d.]/g, "");
+    const parsed = Number(normalized);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
 
-  return {
-    price: data?.product?.price?.discountedStr || "Fiyat bulunamadı",
-    stock: data?.product?.stock || "Bilinmiyor",
-  };
+  return null;
 }
 
 export async function getA101Products(
-  products: ProductItem[]
-): Promise<ProductWithPrice[]> {
+  productList: A101ProductInput[]
+): Promise<A101ProductResult[]> {
   const results = await Promise.all(
-    products.map(async (product) => {
-      try {
-        const data = await fetchA101Product(product.sku);
+    productList.map(async (item) => {
+      const endpoint = `https://rio.a101.com.tr/dbmk89vnr/CALL/Store/getProductBySku/VS032?sku=${item.sku}&channel=SLOT&__culture=tr-TR&__platform=web&data=e30%3D&__isbase64=true`;
 
-        return {
-          name: product.name,
-          sku: product.sku,
-          price: data.price,
-          stock: data.stock,
-        };
-      } catch (error) {
-        return {
-          name: product.name,
-          sku: product.sku,
-          price: "Hata",
-          stock: "Hata",
-        };
+      const response = await fetch(endpoint, {
+        method: "GET",
+        headers: {
+          accept: "application/json, text/plain, */*",
+        },
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        throw new Error(`${item.sku} için A101 isteği başarısız oldu: ${response.status}`);
       }
+
+      const data = await response.json();
+
+      const product = data?.product || data?.data?.product || data;
+
+      if (!product) {
+        throw new Error(`${item.sku} için ürün verisi bulunamadı`);
+      }
+
+      const normalPrice =
+        parsePrice(product?.price?.normal) ??
+        parsePrice(product?.price?.normalStr) ??
+        parsePrice(product?.price);
+
+      const discountedPrice =
+        parsePrice(product?.price?.discounted) ??
+        parsePrice(product?.price?.discountedStr);
+
+      if (normalPrice === null) {
+        throw new Error(`${item.sku} için fiyat okunamadı`);
+      }
+
+      return {
+        sku: item.sku,
+        name: item.name || product?.name || "İsimsiz ürün",
+        price: normalPrice,
+        discountedPrice,
+        priceText:
+          product?.price?.normalStr ??
+          (normalPrice != null ? `${normalPrice} ₺` : null) ??
+          undefined,
+        discountedPriceText:
+          product?.price?.discountedStr ??
+          (discountedPrice != null ? `${discountedPrice} ₺` : null) ??
+          undefined,
+        url: item.url || product?.url || undefined,
+      };
     })
   );
 

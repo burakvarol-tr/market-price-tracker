@@ -29,6 +29,7 @@ export type ProductWithHistory = {
   lastPrice?: number | null;
   lastDiscountedPrice?: number | null;
   updatedAt?: string | null;
+  lastChangedAt?: string | null;
   latest: ProductHistoryItem | null;
   previous: ProductHistoryItem | null;
 };
@@ -51,14 +52,26 @@ export async function readPricesFromFirestore(): Promise<Record<string, number>>
 }
 
 export async function savePricesToFirestore(products: ProductPrice[]) {
-  const batch = db.batch();
   const now = new Date().toISOString();
 
   for (const product of products) {
     const productRef = db.collection(PRODUCTS_COLLECTION).doc(product.sku);
+    const existingDoc = await productRef.get();
+    const existingData = existingDoc.exists ? existingDoc.data() : null;
 
-    batch.set(
-      productRef,
+    const oldPrice =
+      existingData && typeof existingData.lastPrice === "number"
+        ? existingData.lastPrice
+        : null;
+
+    const isPriceChanged =
+      oldPrice !== null && typeof product.price === "number" && oldPrice !== product.price;
+
+    const lastChangedAt = isPriceChanged
+      ? now
+      : existingData?.lastChangedAt ?? null;
+
+    await productRef.set(
       {
         sku: product.sku,
         name: product.name,
@@ -68,15 +81,10 @@ export async function savePricesToFirestore(products: ProductPrice[]) {
         discountedPriceText: product.discountedPriceText ?? null,
         url: product.url ?? null,
         updatedAt: now,
+        lastChangedAt,
       },
       { merge: true }
     );
-  }
-
-  await batch.commit();
-
-  for (const product of products) {
-    const productRef = db.collection(PRODUCTS_COLLECTION).doc(product.sku);
 
     await productRef.collection("history").add({
       sku: product.sku,
@@ -91,7 +99,9 @@ export async function savePricesToFirestore(products: ProductPrice[]) {
   }
 }
 
-export async function getProductHistory(sku: string): Promise<{
+export async function getProductHistory(
+  sku: string
+): Promise<{
   product: Record<string, any>;
   history: ProductHistoryItem[];
 } | null> {
@@ -157,6 +167,7 @@ export async function getAllProductsWithHistory(): Promise<ProductWithHistory[]>
         lastPrice: product?.lastPrice ?? null,
         lastDiscountedPrice: product?.lastDiscountedPrice ?? null,
         updatedAt: product?.updatedAt ?? null,
+        lastChangedAt: product?.lastChangedAt ?? null,
         latest,
         previous,
       };

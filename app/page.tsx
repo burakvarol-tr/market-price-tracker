@@ -12,8 +12,29 @@ function formatPrice(price?: number | null) {
   );
 }
 
+function formatDate(date?: string | null) {
+  if (!date) return "-";
+  return new Date(date).toLocaleString("tr-TR");
+}
+
 export default async function HomePage() {
   const products = await getAllProductsWithHistory();
+
+  const changedProducts = products.filter(
+    (item) =>
+      item.previous?.price != null &&
+      item.latest?.price != null &&
+      item.previous.price !== item.latest.price
+  );
+
+  const lastChangedDates = products
+    .map((item) => item.lastChangedAt)
+    .filter(Boolean) as string[];
+
+  const globalLastChangedAt =
+    lastChangedDates.length > 0
+      ? lastChangedDates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0]
+      : null;
 
   return (
     <main
@@ -26,7 +47,7 @@ export default async function HomePage() {
         fontFamily: "Arial, sans-serif",
       }}
     >
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+      <div style={{ maxWidth: 1280, margin: "0 auto" }}>
         <div
           style={{
             padding: 28,
@@ -52,12 +73,13 @@ export default async function HomePage() {
             MARKET PRICE TRACKER
           </div>
 
-          <h1 style={{ margin: 0, fontSize: 38, lineHeight: 1.1 }}>
+          <h1 style={{ margin: 0, fontSize: 42, lineHeight: 1.1, fontWeight: 800 }}>
             Premium Fiyat Takip Paneli
           </h1>
 
-          <p style={{ color: "#cbd5e1", fontSize: 17, marginTop: 14 }}>
-            A101 ürünlerinin son fiyatlarını, geçmişini ve değişimlerini tek ekranda gör.
+          <p style={{ color: "#cbd5e1", fontSize: 18, marginTop: 14 }}>
+            A101 ürünlerinin son fiyatlarını, değişimlerini ve son değişim tarihlerini tek
+            ekranda gör.
           </p>
 
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 20 }}>
@@ -80,15 +102,24 @@ export default async function HomePage() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
             gap: 16,
             marginBottom: 24,
           }}
         >
           <StatCard title="Toplam Ürün" value={String(products.length)} />
-          <StatCard title="Rapor Sayfası" value="Aktif" subtitle="Premium görünüm hazır" />
-          <StatCard title="Mail Linki" value="Hazır" subtitle="Tüm ürünlere gidiyor" />
-          <StatCard title="Takip" value="Canlı" subtitle="Fiyat geçmişi tutuluyor" />
+          <StatCard title="Değişen Ürün" value={String(changedProducts.length)} />
+          <StatCard title="Son Değişim" value={formatDate(globalLastChangedAt)} />
+          <StatCard
+            title="Son Kontrol"
+            value={formatDate(
+              products
+                .map((item) => item.latest?.checkedAt)
+                .filter(Boolean)
+                .sort((a, b) => new Date(String(b)).getTime() - new Date(String(a)).getTime())[0] ||
+                null
+            )}
+          />
         </div>
 
         <div
@@ -104,12 +135,13 @@ export default async function HomePage() {
           </div>
 
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1100 }}>
               <thead>
                 <tr style={{ background: "#0f172a" }}>
                   <th style={thStyle}>Ürün</th>
                   <th style={thStyle}>SKU</th>
                   <th style={thStyle}>Son Fiyat</th>
+                  <th style={thStyle}>Son Değişim</th>
                   <th style={thStyle}>Rapor</th>
                 </tr>
               </thead>
@@ -119,6 +151,7 @@ export default async function HomePage() {
                     <td style={tdStyle}>{item.name}</td>
                     <td style={tdStyle}>{item.sku}</td>
                     <td style={tdStyle}>{formatPrice(item.lastPrice)}</td>
+                    <td style={tdStyle}>{formatDate(item.lastChangedAt)}</td>
                     <td style={tdStyle}>
                       <Link
                         href={`/report/${item.sku}`}
@@ -141,11 +174,9 @@ export default async function HomePage() {
 function StatCard({
   title,
   value,
-  subtitle,
 }: {
   title: string;
   value: string;
-  subtitle?: string;
 }) {
   return (
     <div
@@ -157,10 +188,7 @@ function StatCard({
       }}
     >
       <div style={{ color: "#94a3b8", fontSize: 13, marginBottom: 10 }}>{title}</div>
-      <div style={{ fontSize: 28, fontWeight: 800 }}>{value}</div>
-      {subtitle ? (
-        <div style={{ color: "#cbd5e1", fontSize: 13, marginTop: 8 }}>{subtitle}</div>
-      ) : null}
+      <div style={{ fontSize: 24, fontWeight: 800, lineHeight: 1.3 }}>{value}</div>
     </div>
   );
 }

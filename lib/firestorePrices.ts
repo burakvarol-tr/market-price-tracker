@@ -5,9 +5,32 @@ export type ProductPrice = {
   name: string;
   price: number;
   discountedPrice?: number | null;
-  priceText?: string;
-  discountedPriceText?: string;
-  url?: string;
+  priceText?: string | null;
+  discountedPriceText?: string | null;
+  url?: string | null;
+};
+
+export type ProductHistoryItem = {
+  id: string;
+  sku?: string;
+  name?: string;
+  price?: number | null;
+  discountedPrice?: number | null;
+  priceText?: string | null;
+  discountedPriceText?: string | null;
+  url?: string | null;
+  checkedAt?: string | null;
+};
+
+export type ProductWithHistory = {
+  sku: string;
+  name: string;
+  url?: string | null;
+  lastPrice?: number | null;
+  lastDiscountedPrice?: number | null;
+  updatedAt?: string | null;
+  latest: ProductHistoryItem | null;
+  previous: ProductHistoryItem | null;
 };
 
 const PRODUCTS_COLLECTION = "products";
@@ -68,7 +91,10 @@ export async function savePricesToFirestore(products: ProductPrice[]) {
   }
 }
 
-export async function getProductHistory(sku: string) {
+export async function getProductHistory(sku: string): Promise<{
+  product: Record<string, any>;
+  history: ProductHistoryItem[];
+} | null> {
   const productRef = db.collection(PRODUCTS_COLLECTION).doc(sku);
   const productDoc = await productRef.get();
 
@@ -76,17 +102,20 @@ export async function getProductHistory(sku: string) {
     return null;
   }
 
-  const productData = productDoc.data();
+  const productData = productDoc.data() || {};
 
   const historySnapshot = await productRef
     .collection("history")
     .orderBy("checkedAt", "desc")
     .get();
 
-  const history = historySnapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  }));
+  const history: ProductHistoryItem[] = historySnapshot.docs.map((doc) => {
+    const data = doc.data() as Omit<ProductHistoryItem, "id">;
+    return {
+      id: doc.id,
+      ...data,
+    };
+  });
 
   return {
     product: productData,
@@ -94,15 +123,15 @@ export async function getProductHistory(sku: string) {
   };
 }
 
-export async function getAllProductsWithHistory() {
+export async function getAllProductsWithHistory(): Promise<ProductWithHistory[]> {
   const snapshot = await db
     .collection(PRODUCTS_COLLECTION)
     .orderBy("name", "asc")
     .get();
 
-  const items = await Promise.all(
+  const items: ProductWithHistory[] = await Promise.all(
     snapshot.docs.map(async (doc) => {
-      const product = doc.data();
+      const product = doc.data() || {};
 
       const historySnapshot = await doc.ref
         .collection("history")
@@ -110,13 +139,16 @@ export async function getAllProductsWithHistory() {
         .limit(2)
         .get();
 
-      const history = historySnapshot.docs.map((h) => ({
-        id: h.id,
-        ...h.data(),
-      }));
+      const history: ProductHistoryItem[] = historySnapshot.docs.map((h) => {
+        const data = h.data() as Omit<ProductHistoryItem, "id">;
+        return {
+          id: h.id,
+          ...data,
+        };
+      });
 
-      const latest = history[0] || null;
-      const previous = history[1] || null;
+      const latest = history[0] ?? null;
+      const previous = history[1] ?? null;
 
       return {
         sku: product?.sku ?? doc.id,

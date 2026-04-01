@@ -3,7 +3,13 @@ import { getAllProductsWithHistory } from "@/lib/firestorePrices";
 
 function formatPrice(price?: number | null) {
   if (price == null) return "-";
-  return `${(price / 100).toFixed(2)} ₺`;
+
+  return (
+    new Intl.NumberFormat("tr-TR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(price / 100) + " ₺"
+  );
 }
 
 export default async function HomePage() {
@@ -68,21 +74,6 @@ export default async function HomePage() {
             >
               Tüm ürün raporunu aç
             </Link>
-
-            <Link
-              href="/report"
-              style={{
-                background: "rgba(255,255,255,0.08)",
-                color: "white",
-                textDecoration: "none",
-                padding: "14px 18px",
-                borderRadius: 14,
-                fontWeight: 700,
-                border: "1px solid rgba(255,255,255,0.10)",
-              }}
-            >
-              Değişimleri incele
-            </Link>
           </div>
         </div>
 
@@ -95,21 +86,9 @@ export default async function HomePage() {
           }}
         >
           <StatCard title="Toplam Ürün" value={String(products.length)} />
-          <StatCard
-            title="Rapor Sayfası"
-            value="Aktif"
-            subtitle="Premium görünüm hazır"
-          />
-          <StatCard
-            title="Mail Linki"
-            value="Hazır"
-            subtitle="Tüm ürünlere gidiyor"
-          />
-          <StatCard
-            title="Takip"
-            value="Canlı"
-            subtitle="Fiyat geçmişi tutuluyor"
-          />
+          <StatCard title="Rapor Sayfası" value="Aktif" subtitle="Premium görünüm hazır" />
+          <StatCard title="Mail Linki" value="Hazır" subtitle="Tüm ürünlere gidiyor" />
+          <StatCard title="Takip" value="Canlı" subtitle="Fiyat geçmişi tutuluyor" />
         </div>
 
         <div
@@ -127,7 +106,7 @@ export default async function HomePage() {
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
-                <tr style={{ background: "rgba(255,255,255,0.04)" }}>
+                <tr style={{ background: "#0f172a" }}>
                   <th style={thStyle}>Ürün</th>
                   <th style={thStyle}>SKU</th>
                   <th style={thStyle}>Son Fiyat</th>
@@ -142,7 +121,7 @@ export default async function HomePage() {
                     <td style={tdStyle}>{formatPrice(item.lastPrice)}</td>
                     <td style={tdStyle}>
                       <Link
-                        href={`/report?changed=${item.sku}`}
+                        href={`/report/${item.sku}`}
                         style={{ color: "#93c5fd", textDecoration: "none", fontWeight: 700 }}
                       >
                         Aç
@@ -189,7 +168,7 @@ function StatCard({
 const thStyle: React.CSSProperties = {
   textAlign: "left",
   padding: 14,
-  color: "#cbd5e1",
+  color: "#e2e8f0",
   fontSize: 13,
 };
 

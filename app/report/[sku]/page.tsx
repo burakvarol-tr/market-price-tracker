@@ -9,7 +9,13 @@ type PageProps = {
 
 function formatPrice(price?: number | null) {
   if (price == null) return "-";
-  return `${(price / 100).toFixed(2)} ₺`;
+
+  return (
+    new Intl.NumberFormat("tr-TR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(price / 100) + " ₺"
+  );
 }
 
 export default async function ProductReportPage({ params }: PageProps) {
@@ -172,27 +178,10 @@ export default async function ProductReportPage({ params }: PageProps) {
           </div>
 
           <div style={{ padding: 20 }}>
-            {product?.url ? (
-              <a
-                href={product.url}
-                target="_blank"
-                rel="noreferrer"
-                style={{
-                  display: "inline-block",
-                  marginBottom: 16,
-                  color: "#93c5fd",
-                  textDecoration: "none",
-                  fontWeight: 700,
-                }}
-              >
-                Ürün sayfasını aç
-              </a>
-            ) : null}
-
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr style={{ background: "rgba(255,255,255,0.04)" }}>
+                  <tr style={{ background: "#0f172a" }}>
                     <th style={thStyle}>Tarih</th>
                     <th style={thStyle}>Fiyat</th>
                     <th style={thStyle}>İndirimli Fiyat</th>
@@ -213,6 +202,10 @@ export default async function ProductReportPage({ params }: PageProps) {
                 </tbody>
               </table>
             </div>
+
+            <p style={{ color: "#94a3b8", fontSize: 13, marginTop: 14 }}>
+              Not: Ürün linki kullanılmıyor. Çünkü A101 linkleri sabit değil ve bazen ana sayfaya atabiliyor.
+            </p>
           </div>
         </div>
       </div>
@@ -250,7 +243,7 @@ function StatCard({
 const thStyle: React.CSSProperties = {
   textAlign: "left",
   padding: 14,
-  color: "#cbd5e1",
+  color: "#e2e8f0",
   fontSize: 13,
 };
 

@@ -9,10 +9,13 @@ type PageProps = {
 
 function formatPrice(price?: number | null) {
   if (price == null) return "-";
-  return new Intl.NumberFormat("tr-TR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(price / 100) + " ₺";
+
+  return (
+    new Intl.NumberFormat("tr-TR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(price / 100) + " ₺"
+  );
 }
 
 function getPercent(oldPrice?: number | null, newPrice?: number | null) {
@@ -185,4 +188,34 @@ export default async function ReportPage({ searchParams }: PageProps) {
                           }}
                         >
                           Detayı aç
-                       
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+const thStyle: React.CSSProperties = {
+  textAlign: "left",
+  padding: 14,
+  color: "#e2e8f0",
+  fontSize: 13,
+};
+
+const tdStyle: React.CSSProperties = {
+  padding: 14,
+  borderTop: "1px solid rgba(255,255,255,0.06)",
+  color: "white",
+};
+
+const tdStyleStrong: React.CSSProperties = {
+  ...tdStyle,
+  fontWeight: 700,
+};

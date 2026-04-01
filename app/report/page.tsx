@@ -285,11 +285,11 @@ function InfoCard({
         borderRadius: 18,
         border: "1px solid rgba(255,255,255,0.08)",
         background: "rgba(255,255,255,0.05)",
-        padding: 16,
+        padding: 12,
       }}
     >
-      <div style={{ fontSize: 11, color: "#94a3b8" }}>{title}</div>
-      <div style={{ marginTop: 8, fontSize: 22, fontWeight: 700 }}>{value}</div>
+      <div style={{ fontSize: 10, color: "#94a3b8" }}>{title}</div>
+      <div style={{ marginTop: 6, fontSize: 18, fontWeight: 700 }}>{value}</div>
     </div>
   );
 }
@@ -308,17 +308,17 @@ const thCenter: React.CSSProperties = {
 };
 
 const tdStrong: React.CSSProperties = {
-  padding: "14px 16px",
+  padding: "10px 14px",
   borderTop: "1px solid rgba(255,255,255,0.06)",
-  fontSize: 13,
+  fontSize: 12,
   fontWeight: 600,
   color: "white",
 };
 
 const tdCenter: React.CSSProperties = {
-  padding: "14px 16px",
+  padding: "10px 14px",
   borderTop: "1px solid rgba(255,255,255,0.06)",
-  fontSize: 13,
+  fontSize: 12,
   textAlign: "center",
   color: "white",
 };

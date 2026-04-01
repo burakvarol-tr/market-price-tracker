@@ -9,7 +9,10 @@ type PageProps = {
 
 function formatPrice(price?: number | null) {
   if (price == null) return "-";
-  return `${(price / 100).toFixed(2)} ₺`;
+  return new Intl.NumberFormat("tr-TR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(price / 100) + " ₺";
 }
 
 function getPercent(oldPrice?: number | null, newPrice?: number | null) {
@@ -105,14 +108,14 @@ export default async function ReportPage({ searchParams }: PageProps) {
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1100 }}>
               <thead>
-                <tr style={{ background: "rgba(255,255,255,0.04)" }}>
+                <tr style={{ background: "#0f172a" }}>
                   <th style={thStyle}>Ürün</th>
                   <th style={thStyle}>SKU</th>
                   <th style={thStyle}>Eski Fiyat</th>
                   <th style={thStyle}>Yeni Fiyat</th>
                   <th style={thStyle}>Değişim</th>
                   <th style={thStyle}>Tarih</th>
-                  <th style={thStyle}>Link</th>
+                  <th style={thStyle}>Detay</th>
                 </tr>
               </thead>
               <tbody>
@@ -173,45 +176,13 @@ export default async function ReportPage({ searchParams }: PageProps) {
                           : "-"}
                       </td>
                       <td style={tdStyle}>
-                        {item.url ? (
-                          <a
-                            href={item.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            style={{ color: "#93c5fd", textDecoration: "none", fontWeight: 700 }}
-                          >
-                            Ürünü aç
-                          </a>
-                        ) : (
-                          "-"
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </main>
-  );
-}
-
-const thStyle: React.CSSProperties = {
-  textAlign: "left",
-  padding: 14,
-  color: "#cbd5e1",
-  fontSize: 13,
-};
-
-const tdStyle: React.CSSProperties = {
-  padding: 14,
-  borderTop: "1px solid rgba(255,255,255,0.06)",
-  color: "white",
-};
-
-const tdStyleStrong: React.CSSProperties = {
-  ...tdStyle,
-  fontWeight: 700,
-};
+                        <Link
+                          href={`/report/${item.sku}`}
+                          style={{
+                            color: "#93c5fd",
+                            textDecoration: "none",
+                            fontWeight: 700,
+                          }}
+                        >
+                          Detayı aç
+                       

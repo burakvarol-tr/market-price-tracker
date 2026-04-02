@@ -14,19 +14,17 @@ function formatPrice(price: number | null) {
 export default async function ProductDetailPage({
   params,
 }: {
-  params: { sku: string };
+  params: Promise<{ sku: string }>;
 }) {
   try {
-    const sku = params?.sku;
+    const { sku } = await params;
 
     if (!sku) {
       return (
         <main className="min-h-screen bg-[#F6F8FB] p-6 text-[#0F172A]">
           <div className="mx-auto max-w-4xl rounded-[28px] border border-[#E7ECF3] bg-white p-8 shadow-[0_14px_36px_rgba(15,23,42,0.04)]">
             <h1 className="text-2xl font-semibold">Geçersiz ürün bağlantısı</h1>
-            <p className="mt-3 text-[#66758A]">
-              Ürün kodu bulunamadı.
-            </p>
+            <p className="mt-3 text-[#66758A]">Ürün kodu bulunamadı.</p>
             <div className="mt-6">
               <Link
                 href="/report"
@@ -57,9 +55,8 @@ export default async function ProductDetailPage({
               </h1>
 
               <p className="mt-4 max-w-2xl text-[16px] leading-8 text-[#5E6B7D]">
-                Ürün henüz Firestore’a yazılmamış olabilir ya da bu SKU için veri
-                oluşmamış olabilir. Önce fiyat kontrolü çalıştırılıp sonra tekrar
-                deneyebilirsin.
+                Bu SKU için henüz detay kaydı oluşmamış olabilir. Önce fiyat
+                kontrolünü çalıştırıp sonra tekrar deneyebilirsin.
               </p>
 
               <div className="mt-7 flex flex-wrap gap-3">

@@ -220,7 +220,7 @@ export default async function ReportPage({
                         </td>
                         <td className="px-6 py-4">
                           <Link
-                            href={`/report/${item.sku}`}
+                            href={`/report/detail?sku=${item.sku}`}
                             className="font-medium text-[#3A67E8] transition hover:text-[#2D58D8]"
                           >
                             Detayı aç

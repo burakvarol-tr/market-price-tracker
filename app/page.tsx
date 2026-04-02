@@ -37,84 +37,112 @@ export default async function HomePage() {
   });
 
   return (
-    <main className="min-h-screen bg-gray-50 p-6 md:p-10">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Market Price Tracker
-          </h1>
-          <p className="mt-2 text-sm text-gray-600">
-            Market bazlı fiyat takip ve raporlama ekranı
-          </p>
-        </div>
+    <main className="min-h-screen bg-[#F5F7FA] text-[#0F172A]">
+      <div className="mx-auto max-w-7xl px-5 py-8 md:px-8 md:py-10">
+        <section className="mb-8 rounded-[28px] border border-[#E7ECF3] bg-gradient-to-br from-white via-[#F8FAFC] to-[#EEF4FF] p-7 shadow-[0_10px_40px_rgba(15,23,42,0.05)] md:p-9">
+          <div className="max-w-3xl">
+            <div className="mb-3 inline-flex rounded-full border border-[#D8E3F2] bg-white/80 px-3 py-1 text-[12px] font-semibold tracking-wide text-[#315B9E]">
+              MARKET PRICE TRACKER
+            </div>
 
-        <div className="mb-8 grid gap-4 md:grid-cols-3">
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-            <div className="text-sm text-gray-500">Toplam Ürün</div>
-            <div className="mt-2 text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-semibold tracking-[-0.02em] text-[#0F172A] md:text-4xl">
+              Market bazlı fiyat takip paneli
+            </h1>
+
+            <p className="mt-3 max-w-2xl text-[15px] leading-7 text-[#5B6B80] md:text-base">
+              Ürün fiyatlarını tek ekranda izle, değişimleri hızlıca gör,
+              market bazlı raporları sade ve profesyonel bir görünümle yönet.
+            </p>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                href="/report"
+                className="rounded-full bg-[#1D4ED8] px-5 py-3 text-sm font-semibold text-white shadow-[0_10px_25px_rgba(29,78,216,0.20)] transition hover:translate-y-[-1px]"
+              >
+                Tüm raporu aç
+              </Link>
+
+              <div className="rounded-full border border-[#DCE4EE] bg-white px-5 py-3 text-sm font-medium text-[#536273]">
+                {items.length} ürün izleniyor
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mb-8 grid gap-4 md:grid-cols-3">
+          <div className="rounded-[24px] border border-[#E6EBF2] bg-white p-6 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
+            <div className="text-sm font-medium text-[#6A7788]">Toplam Ürün</div>
+            <div className="mt-3 text-4xl font-semibold tracking-[-0.03em] text-[#0F172A]">
               {items.length}
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-            <div className="text-sm text-gray-500">Fiyat Değişen</div>
-            <div className="mt-2 text-3xl font-bold text-gray-900">
+          <div className="rounded-[24px] border border-[#E6EBF2] bg-white p-6 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
+            <div className="text-sm font-medium text-[#6A7788]">Fiyat Değişen</div>
+            <div className="mt-3 text-4xl font-semibold tracking-[-0.03em] text-[#0F172A]">
               {items.filter((x) => x.changed).length}
             </div>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-            <div className="text-sm text-gray-500">Market Sayısı</div>
-            <div className="mt-2 text-3xl font-bold text-gray-900">
+          <div className="rounded-[24px] border border-[#E6EBF2] bg-white p-6 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
+            <div className="text-sm font-medium text-[#6A7788]">Market Sayısı</div>
+            <div className="mt-3 text-4xl font-semibold tracking-[-0.03em] text-[#0F172A]">
               {markets.length}
             </div>
           </div>
-        </div>
+        </section>
 
-        <div className="mb-8">
-          <h2 className="mb-4 text-xl font-semibold text-gray-900">
-            Marketler
-          </h2>
+        <section className="mb-8">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-2xl font-semibold tracking-[-0.02em] text-[#0F172A]">
+                Marketler
+              </h2>
+              <p className="mt-1 text-sm text-[#66758A]">
+                Her market için ayrı rapor ekranına geçebilirsin.
+              </p>
+            </div>
+          </div>
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {marketSummaries.map((summary) => (
               <Link
                 key={summary.market}
                 href={`/report?market=${encodeURIComponent(summary.market)}`}
-                className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                className="group rounded-[26px] border border-[#E6EBF2] bg-white p-6 shadow-[0_8px_30px_rgba(15,23,42,0.04)] transition duration-200 hover:-translate-y-[2px] hover:shadow-[0_16px_40px_rgba(15,23,42,0.07)]"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="text-lg font-bold text-gray-900">
+                    <div className="text-xl font-semibold tracking-[-0.02em] text-[#0F172A]">
                       {summary.market}
                     </div>
-                    <div className="mt-1 text-sm text-gray-500">
+                    <div className="mt-1 text-sm text-[#6A7788]">
                       Market raporunu aç
                     </div>
                   </div>
 
-                  <div className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+                  <div className="rounded-full border border-[#E3EAF3] bg-[#F8FAFC] px-3 py-1 text-xs font-semibold text-[#617286]">
                     {summary.total} ürün
                   </div>
                 </div>
 
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  <div className="rounded-xl bg-gray-50 p-3">
-                    <div className="text-xs text-gray-500">Toplam</div>
-                    <div className="mt-1 text-lg font-semibold text-gray-900">
+                <div className="mt-5 grid grid-cols-2 gap-3">
+                  <div className="rounded-2xl border border-[#EDF2F7] bg-[#F8FAFC] p-4">
+                    <div className="text-xs font-medium text-[#7A8798]">Toplam</div>
+                    <div className="mt-2 text-2xl font-semibold text-[#0F172A]">
                       {summary.total}
                     </div>
                   </div>
 
-                  <div className="rounded-xl bg-gray-50 p-3">
-                    <div className="text-xs text-gray-500">Değişen</div>
-                    <div className="mt-1 text-lg font-semibold text-gray-900">
+                  <div className="rounded-2xl border border-[#EDF2F7] bg-[#F8FAFC] p-4">
+                    <div className="text-xs font-medium text-[#7A8798]">Değişen</div>
+                    <div className="mt-2 text-2xl font-semibold text-[#0F172A]">
                       {summary.changedCount}
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-4 text-xs text-gray-500">
+                <div className="mt-5 text-xs text-[#7B8798]">
                   Son güncelleme:{" "}
                   {summary.lastUpdated
                     ? new Date(summary.lastUpdated).toLocaleString("tr-TR")
@@ -124,63 +152,75 @@ export default async function HomePage() {
             ))}
 
             {!marketSummaries.length && (
-              <div className="rounded-2xl border border-gray-200 bg-white p-6 text-sm text-gray-500 shadow-sm">
+              <div className="rounded-[26px] border border-[#E6EBF2] bg-white p-6 text-sm text-[#6B7788] shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
                 Henüz veri yok
               </div>
             )}
           </div>
-        </div>
+        </section>
 
-        <div>
-          <h2 className="mb-4 text-xl font-semibold text-gray-900">
-            Son Durum
-          </h2>
+        <section>
+          <div className="mb-4">
+            <h2 className="text-2xl font-semibold tracking-[-0.02em] text-[#0F172A]">
+              Son Durum
+            </h2>
+            <p className="mt-1 text-sm text-[#66758A]">
+              Tüm ürünlerin güncel fiyat görünümü
+            </p>
+          </div>
 
-          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div className="overflow-hidden rounded-[28px] border border-[#E6EBF2] bg-white shadow-[0_10px_35px_rgba(15,23,42,0.05)]">
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
-                <thead className="bg-gray-100 text-left text-gray-700">
+                <thead className="bg-[#F7F9FC] text-left text-[#536273]">
                   <tr>
-                    <th className="px-4 py-3">Ürün</th>
-                    <th className="px-4 py-3">SKU</th>
-                    <th className="px-4 py-3">Market</th>
-                    <th className="px-4 py-3">Güncel Fiyat</th>
-                    <th className="px-4 py-3">Önceki Fiyat</th>
-                    <th className="px-4 py-3">Değişim</th>
-                    <th className="px-4 py-3">Detay</th>
+                    <th className="px-5 py-4 font-semibold">Ürün</th>
+                    <th className="px-5 py-4 font-semibold">SKU</th>
+                    <th className="px-5 py-4 font-semibold">Market</th>
+                    <th className="px-5 py-4 font-semibold">Güncel Fiyat</th>
+                    <th className="px-5 py-4 font-semibold">Önceki Fiyat</th>
+                    <th className="px-5 py-4 font-semibold">Değişim</th>
+                    <th className="px-5 py-4 font-semibold">Detay</th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((item) => {
-                    const changeColor =
-                      (item.changePercent ?? 0) > 0
-                        ? "text-green-600"
-                        : (item.changePercent ?? 0) < 0
-                        ? "text-red-600"
-                        : "text-gray-500";
+                    const changePositive = (item.changePercent ?? 0) > 0;
+                    const changeNegative = (item.changePercent ?? 0) < 0;
 
                     return (
-                      <tr key={item.sku} className="border-t">
-                        <td className="px-4 py-3 font-medium text-gray-900">
+                      <tr
+                        key={item.sku}
+                        className="border-t border-[#EEF2F6] transition hover:bg-[#FAFCFF]"
+                      >
+                        <td className="px-5 py-4 font-medium text-[#0F172A]">
                           {item.name}
                         </td>
-                        <td className="px-4 py-3 text-gray-700">{item.sku}</td>
-                        <td className="px-4 py-3 text-gray-700">
-                          {item.market}
-                        </td>
-                        <td className="px-4 py-3 font-semibold text-gray-900">
+                        <td className="px-5 py-4 text-[#5E6C80]">{item.sku}</td>
+                        <td className="px-5 py-4 text-[#5E6C80]">{item.market}</td>
+                        <td className="px-5 py-4 font-semibold text-[#0F172A]">
                           {formatPrice(item.currentPrice)}
                         </td>
-                        <td className="px-4 py-3 text-gray-700">
+                        <td className="px-5 py-4 text-[#5E6C80]">
                           {formatPrice(item.previousPrice)}
                         </td>
-                        <td className={`px-4 py-3 font-semibold ${changeColor}`}>
-                          {formatPercent(item.changePercent)}
+                        <td className="px-5 py-4">
+                          <span
+                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                              changePositive
+                                ? "bg-emerald-50 text-emerald-700"
+                                : changeNegative
+                                ? "bg-rose-50 text-rose-700"
+                                : "bg-slate-100 text-slate-600"
+                            }`}
+                          >
+                            {formatPercent(item.changePercent)}
+                          </span>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-5 py-4">
                           <Link
                             href={`/report/${item.sku}`}
-                            className="underline underline-offset-2"
+                            className="font-medium text-[#2563EB] transition hover:text-[#1D4ED8]"
                           >
                             Aç
                           </Link>
@@ -193,7 +233,7 @@ export default async function HomePage() {
                     <tr>
                       <td
                         colSpan={7}
-                        className="px-4 py-10 text-center text-gray-500"
+                        className="px-5 py-12 text-center text-[#7A8798]"
                       >
                         Veri bulunamadı
                       </td>
@@ -203,7 +243,7 @@ export default async function HomePage() {
               </table>
             </div>
           </div>
-        </div>
+        </section>
       </div>
     </main>
   );

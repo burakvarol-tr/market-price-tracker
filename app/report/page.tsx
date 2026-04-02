@@ -1,268 +1,164 @@
 import Link from "next/link";
+import { getLatestPrices, type PriceRecord } from "@/lib/firestorePrices";
 
-type Product = {
-  name: string;
-  sku: string;
-  oldPrice?: number;
-  newPrice: number;
-};
+export const dynamic = "force-dynamic";
 
-type PageProps = {
-  searchParams?: Promise<{
+function formatPrice(price: number | null) {
+  if (price === null || Number.isNaN(price)) return "-";
+  return `${price.toFixed(2)} TL`;
+}
+
+function formatPercent(value: number | null) {
+  if (value === null || Number.isNaN(value)) return "-";
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${value.toFixed(2)}%`;
+}
+
+function getRowStyle(item: PriceRecord, changedSet: Set<string>) {
+  if (changedSet.has(item.sku)) {
+    return "bg-yellow-50 border-yellow-300";
+  }
+
+  if (item.changed && (item.changePercent ?? 0) > 0) {
+    return "bg-green-50 border-green-200";
+  }
+
+  if (item.changed && (item.changePercent ?? 0) < 0) {
+    return "bg-red-50 border-red-200";
+  }
+
+  return "bg-white border-gray-200";
+}
+
+export default async function ReportPage({
+  searchParams,
+}: {
+  searchParams?: {
+    market?: string;
     changed?: string;
-  }>;
-};
+  };
+}) {
+  const market = searchParams?.market || "";
+  const changed = searchParams?.changed || "";
 
-const products: Product[] = [
-  { name: "Dooy Safari Meyveleri Meyveli İçecek 200 ml", sku: "13002151", oldPrice: 9.5, newPrice: 10.5 },
-  { name: "Dooy Sihirli Ejderha Meyveli İçecek 200 ml", sku: "13002152", oldPrice: 10.5, newPrice: 10.5 },
-  { name: "Üstad %100 Organik Meyve Suyu Elma 1 L", sku: "13002977", oldPrice: 109, newPrice: 119 },
-  { name: "Üstad %100 Organik Meyve Suyu Kırmızı Meyve 1 L", sku: "13002973", oldPrice: 119, newPrice: 119 },
-  { name: "Üstad %100 Organik Meyve Suyu Sarı Meyve 1 L", sku: "13002976", oldPrice: 119, newPrice: 119 },
-];
+  const items = await getLatestPrices({
+    market: market || undefined,
+  });
 
-function formatPrice(value?: number) {
-  if (value == null) return "-";
-  return (
-    new Intl.NumberFormat("tr-TR", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(value) + " ₺"
-  );
-}
-
-function getPercent(oldP?: number, newP?: number) {
-  if (!oldP || !newP) return null;
-  return (((newP - oldP) / oldP) * 100).toFixed(1);
-}
-
-export default async function ReportPage({ searchParams }: PageProps) {
-  const params = searchParams ? await searchParams : {};
   const changedSet = new Set(
-    (params?.changed || "")
+    changed
       .split(",")
       .map((x) => x.trim())
       .filter(Boolean)
   );
 
-  const changedCount = products.filter((p) => changedSet.has(p.sku)).length;
+  const markets = Array.from(new Set(items.map((x) => x.market)));
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background:
-          "radial-gradient(circle at top, rgba(59,130,246,0.16), transparent 30%), linear-gradient(180deg, #020617 0%, #0f172a 55%, #111827 100%)",
-        color: "white",
-        padding: "24px 16px 40px",
-        fontFamily: "Arial, sans-serif",
-      }}
-    >
-      <div style={{ maxWidth: 1120, margin: "0 auto" }}>
-        <div
-          style={{
-            marginBottom: 16,
-            padding: 20,
-            borderRadius: 20,
-            background: "linear-gradient(135deg, rgba(30,41,59,0.92), rgba(30,64,175,0.18))",
-            border: "1px solid rgba(255,255,255,0.08)",
-            boxShadow: "0 18px 50px rgba(0,0,0,0.24)",
-          }}
-        >
-          <div
-            style={{
-              display: "inline-block",
-              padding: "6px 12px",
-              borderRadius: 999,
-              background: "rgba(59,130,246,0.14)",
-              color: "#bfdbfe",
-              fontSize: 11,
-              fontWeight: 700,
-              marginBottom: 12,
-            }}
-          >
-            PREMIUM REPORT
-          </div>
+    <main className="min-h-screen bg-gray-50 p-6 md:p-10">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-6 flex flex-col gap-3">
+          <h1 className="text-2xl font-bold text-gray-900">Fiyat Raporu</h1>
 
-          <h1
-            style={{
-              fontSize: 28,
-              margin: 0,
-              fontWeight: 700,
-              lineHeight: 1.15,
-            }}
-          >
-            Fiyat Değişim Paneli
-          </h1>
-
-          <p
-            style={{
-              color: "#cbd5e1",
-              marginTop: 10,
-              marginBottom: 0,
-              fontSize: 14,
-              lineHeight: 1.5,
-            }}
-          >
-            Değişen ürünler bu ekranda daha belirgin gösterilir.
-          </p>
-
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 16 }}>
+          <div className="flex flex-wrap gap-2">
             <Link
-              href="/"
-              style={{
-                display: "inline-block",
-                background: "#2563eb",
-                padding: "10px 14px",
-                borderRadius: 12,
-                textDecoration: "none",
-                color: "white",
-                fontSize: 13,
-                fontWeight: 700,
-              }}
+              href="/report"
+              className={`rounded-lg border px-4 py-2 text-sm font-medium ${
+                !market ? "bg-black text-white border-black" : "bg-white text-gray-700 border-gray-300"
+              }`}
             >
-              Ana sayfaya dön
+              Tümü
             </Link>
+
+            {markets.map((marketItem) => (
+              <Link
+                key={marketItem}
+                href={`/report?market=${encodeURIComponent(marketItem)}`}
+                className={`rounded-lg border px-4 py-2 text-sm font-medium ${
+                  market === marketItem
+                    ? "bg-black text-white border-black"
+                    : "bg-white text-gray-700 border-gray-300"
+                }`}
+              >
+                {marketItem}
+              </Link>
+            ))}
+          </div>
+
+          <div className="text-sm text-gray-600">
+            {market ? (
+              <span>Seçili market: <strong>{market}</strong></span>
+            ) : (
+              <span>Tüm marketler gösteriliyor</span>
+            )}
           </div>
         </div>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: 12,
-            marginBottom: 16,
-          }}
-        >
-          <InfoCard title="Toplam Ürün" value={String(products.length)} />
-          <InfoCard title="Bugün Değişen" value={String(changedCount)} />
-          <InfoCard title="Rapor" value="Hazır" />
-          <InfoCard title="Durum" value="Aktif" />
-        </div>
-
-        <div
-          style={{
-            overflow: "hidden",
-            borderRadius: 20,
-            border: "1px solid rgba(255,255,255,0.08)",
-            background: "rgba(255,255,255,0.05)",
-          }}
-        >
-          <div
-            style={{
-              padding: "16px 18px",
-              borderBottom: "1px solid rgba(255,255,255,0.06)",
-            }}
-          >
-            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>Ürün Listesi</h2>
-          </div>
-
-          <div style={{ overflowX: "auto" }}>
-            <table
-              style={{
-                width: "100%",
-                minWidth: 980,
-                borderCollapse: "collapse",
-              }}
-            >
-              <thead>
-                <tr style={{ background: "rgba(2,6,23,0.55)" }}>
-                  <th style={th}>Ürün</th>
-                  <th style={thCenter}>Eski</th>
-                  <th style={thCenter}>Yeni</th>
-                  <th style={thCenter}>Değişim</th>
-                  <th style={thCenter}>Detay</th>
+        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="bg-gray-100 text-left text-gray-700">
+                <tr>
+                  <th className="px-4 py-3">Ürün</th>
+                  <th className="px-4 py-3">SKU</th>
+                  <th className="px-4 py-3">Market</th>
+                  <th className="px-4 py-3">Eski Fiyat</th>
+                  <th className="px-4 py-3">Yeni Fiyat</th>
+                  <th className="px-4 py-3">Değişim</th>
+                  <th className="px-4 py-3">Stok</th>
+                  <th className="px-4 py-3">Güncelleme</th>
                 </tr>
               </thead>
-
               <tbody>
-                {products.map((p) => {
-                  const percent = getPercent(p.oldPrice, p.newPrice);
-                  const percentNumber = percent ? Number(percent) : null;
-                  const isUp = percentNumber != null && percentNumber > 0;
-                  const isDown = percentNumber != null && percentNumber < 0;
-                  const isSame = percentNumber != null && percentNumber === 0;
-                  const isChanged = changedSet.has(p.sku);
+                {items.map((item) => {
+                  const changeColor =
+                    (item.changePercent ?? 0) > 0
+                      ? "text-green-600"
+                      : (item.changePercent ?? 0) < 0
+                      ? "text-red-600"
+                      : "text-gray-500";
 
                   return (
                     <tr
-                      key={p.sku}
-                      style={{
-                        background: isChanged ? "rgba(59,130,246,0.14)" : "transparent",
-                        boxShadow: isChanged ? "inset 4px 0 0 #60a5fa" : "none",
-                      }}
+                      key={item.sku}
+                      className={`border-t ${getRowStyle(item, changedSet)}`}
                     >
-                      <td style={tdStrong}>{p.name}</td>
-
-                      <td style={tdCenterMuted}>{formatPrice(p.oldPrice)}</td>
-
-                      <td
-                        style={{
-                          ...tdCenter,
-                          fontWeight: 700,
-                          color: isUp
-                            ? "#22c55e"
-                            : isDown
-                            ? "#ef4444"
-                            : "white",
-                        }}
-                      >
-                        {isUp ? "▲ " : isDown ? "▼ " : ""}
-                        {formatPrice(p.newPrice)}
-                      </td>
-
-                      <td style={tdCenter}>
-                        {percentNumber == null ? (
-                          <span style={{ color: "#94a3b8" }}>-</span>
-                        ) : isSame ? (
-                          <span
-                            style={{
-                              display: "inline-block",
-                              padding: "6px 10px",
-                              borderRadius: 999,
-                              fontSize: 12,
-                              fontWeight: 700,
-                              background: "rgba(148,163,184,0.14)",
-                              color: "#94a3b8",
-                            }}
-                          >
-                            %0.0
-                          </span>
-                        ) : (
-                          <span
-                            style={{
-                              display: "inline-block",
-                              padding: "6px 10px",
-                              borderRadius: 999,
-                              fontSize: 12,
-                              fontWeight: 700,
-                              background: isUp
-                                ? "rgba(34,197,94,0.14)"
-                                : "rgba(239,68,68,0.14)",
-                              color: isUp ? "#22c55e" : "#ef4444",
-                            }}
-                          >
-                            {isUp ? "▲" : "▼"} %{Math.abs(percentNumber).toFixed(1)}
-                          </span>
-                        )}
-                      </td>
-
-                      <td style={tdCenter}>
+                      <td className="px-4 py-3 font-medium text-gray-900">
                         <Link
-                          href={`/report/${p.sku}`}
-                          style={{
-                            color: "#60a5fa",
-                            textDecoration: "none",
-                            fontSize: 13,
-                            fontWeight: 600,
-                          }}
+                          href={`/report/${item.sku}`}
+                          className="underline underline-offset-2"
                         >
-                          Detayı aç
+                          {item.name}
                         </Link>
+                      </td>
+                      <td className="px-4 py-3 text-gray-700">{item.sku}</td>
+                      <td className="px-4 py-3 text-gray-700">{item.market}</td>
+                      <td className="px-4 py-3 text-gray-700">
+                        {formatPrice(item.previousPrice)}
+                      </td>
+                      <td className="px-4 py-3 text-gray-900 font-semibold">
+                        {formatPrice(item.currentPrice)}
+                      </td>
+                      <td className={`px-4 py-3 font-semibold ${changeColor}`}>
+                        {formatPercent(item.changePercent)}
+                      </td>
+                      <td className="px-4 py-3 text-gray-700">
+                        {item.inStock ? "Var" : "Yok"}
+                      </td>
+                      <td className="px-4 py-3 text-gray-500">
+                        {new Date(item.updatedAt).toLocaleString("tr-TR")}
                       </td>
                     </tr>
                   );
                 })}
+
+                {!items.length && (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-10 text-center text-gray-500">
+                      Veri bulunamadı
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -271,59 +167,3 @@ export default async function ReportPage({ searchParams }: PageProps) {
     </main>
   );
 }
-
-function InfoCard({
-  title,
-  value,
-}: {
-  title: string;
-  value: string;
-}) {
-  return (
-    <div
-      style={{
-        borderRadius: 18,
-        border: "1px solid rgba(255,255,255,0.08)",
-        background: "rgba(255,255,255,0.05)",
-        padding: 12,
-      }}
-    >
-      <div style={{ fontSize: 10, color: "#94a3b8" }}>{title}</div>
-      <div style={{ marginTop: 6, fontSize: 18, fontWeight: 700 }}>{value}</div>
-    </div>
-  );
-}
-
-const th: React.CSSProperties = {
-  textAlign: "left",
-  padding: "12px 16px",
-  color: "#94a3b8",
-  fontSize: 12,
-  fontWeight: 700,
-};
-
-const thCenter: React.CSSProperties = {
-  ...th,
-  textAlign: "center",
-};
-
-const tdStrong: React.CSSProperties = {
-  padding: "10px 14px",
-  borderTop: "1px solid rgba(255,255,255,0.06)",
-  fontSize: 12,
-  fontWeight: 600,
-  color: "white",
-};
-
-const tdCenter: React.CSSProperties = {
-  padding: "10px 14px",
-  borderTop: "1px solid rgba(255,255,255,0.06)",
-  fontSize: 12,
-  textAlign: "center",
-  color: "white",
-};
-
-const tdCenterMuted: React.CSSProperties = {
-  ...tdCenter,
-  color: "#94a3b8",
-};

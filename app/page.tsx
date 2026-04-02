@@ -1,336 +1,210 @@
 import Link from "next/link";
-import { getAllProductsWithHistory } from "@/lib/firestorePrices";
+import { getLatestPrices } from "@/lib/firestorePrices";
+
+export const dynamic = "force-dynamic";
 
 function formatPrice(price?: number | null) {
-  if (price == null) return "-";
-  return (
-    new Intl.NumberFormat("tr-TR", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(price / 100) + " ₺"
-  );
+  if (price == null || Number.isNaN(price)) return "-";
+  return `${price.toFixed(2)} TL`;
 }
 
-function formatDate(date?: string | null) {
-  if (!date) return "-";
-  return new Date(date).toLocaleString("tr-TR");
+function formatPercent(value?: number | null) {
+  if (value == null || Number.isNaN(value)) return "-";
+  const sign = value > 0 ? "+" : "";
+  return `${sign}${value.toFixed(2)}%`;
 }
 
 export default async function HomePage() {
-  const products = await getAllProductsWithHistory();
+  const items = await getLatestPrices();
 
-  const lastChangedProduct = products
-    .filter((p) => p.lastChangedAt)
-    .sort(
-      (a, b) =>
-        new Date(b.lastChangedAt || "").getTime() -
-        new Date(a.lastChangedAt || "").getTime()
-    )[0];
+  const markets = Array.from(new Set(items.map((item) => item.market)));
 
-  const lastCheckedAt = products
-    .map((item) => item.latest?.checkedAt)
-    .filter(Boolean)
-    .sort((a, b) => new Date(String(b)).getTime() - new Date(String(a)).getTime())[0] || null;
+  const marketSummaries = markets.map((market) => {
+    const marketItems = items.filter((item) => item.market === market);
+    const changedCount = marketItems.filter((item) => item.changed).length;
+
+    return {
+      market,
+      total: marketItems.length,
+      changedCount,
+      lastUpdated:
+        marketItems.length > 0
+          ? marketItems
+              .map((x) => new Date(x.updatedAt).getTime())
+              .sort((a, b) => b - a)[0]
+          : null,
+    };
+  });
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background:
-          "radial-gradient(circle at top, rgba(59,130,246,0.18), transparent 30%), linear-gradient(180deg, #020617 0%, #0f172a 55%, #111827 100%)",
-        color: "white",
-        padding: "28px 16px 40px",
-        fontFamily: "Arial, sans-serif",
-      }}
-    >
-      <div style={{ maxWidth: 1180, margin: "0 auto" }}>
-        <div
-          style={{
-            background:
-              "linear-gradient(135deg, rgba(30,41,59,0.92), rgba(30,64,175,0.22))",
-            border: "1px solid rgba(255,255,255,0.08)",
-            borderRadius: 22,
-            padding: 26,
-            boxShadow: "0 18px 50px rgba(0,0,0,0.28)",
-            marginBottom: 18,
-          }}
-        >
-          <div
-            style={{
-              display: "inline-block",
-              padding: "6px 12px",
-              borderRadius: 999,
-              background: "rgba(59,130,246,0.16)",
-              color: "#bfdbfe",
-              fontSize: 12,
-              fontWeight: 700,
-              marginBottom: 14,
-            }}
-          >
-            MARKET PRICE TRACKER
+    <main className="min-h-screen bg-gray-50 p-6 md:p-10">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">
+            Market Price Tracker
+          </h1>
+          <p className="mt-2 text-sm text-gray-600">
+            Market bazlı fiyat takip ve raporlama ekranı
+          </p>
+        </div>
+
+        <div className="mb-8 grid gap-4 md:grid-cols-3">
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div className="text-sm text-gray-500">Toplam Ürün</div>
+            <div className="mt-2 text-3xl font-bold text-gray-900">
+              {items.length}
+            </div>
           </div>
 
-          <h1
-            style={{
-              fontSize: 34,
-              margin: 0,
-              fontWeight: 700,
-              lineHeight: 1.1,
-            }}
-          >
-            Premium Fiyat Takip Paneli
-          </h1>
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div className="text-sm text-gray-500">Fiyat Değişen</div>
+            <div className="mt-2 text-3xl font-bold text-gray-900">
+              {items.filter((x) => x.changed).length}
+            </div>
+          </div>
 
-          <p
-            style={{
-              color: "#cbd5e1",
-              marginTop: 12,
-              marginBottom: 0,
-              fontSize: 15,
-              maxWidth: 700,
-              lineHeight: 1.5,
-            }}
-          >
-            A101 ürünlerinin son fiyatlarını, son değişim zamanını ve detay raporlarını
-            tek ekranda gör.
-          </p>
-
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-            <Link
-              href="/report"
-              style={{
-                display: "inline-block",
-                background: "#2563eb",
-                padding: "11px 16px",
-                borderRadius: 12,
-                textDecoration: "none",
-                color: "white",
-                fontSize: 14,
-                fontWeight: 700,
-              }}
-            >
-              Tüm ürün raporunu aç
-            </Link>
-
-            {lastChangedProduct ? (
-              <Link
-                href={`/report/${lastChangedProduct.sku}`}
-                style={{
-                  display: "inline-block",
-                  background: "rgba(255,255,255,0.06)",
-                  border: "1px solid rgba(255,255,255,0.08)",
-                  padding: "11px 16px",
-                  borderRadius: 12,
-                  textDecoration: "none",
-                  color: "white",
-                  fontSize: 14,
-                  fontWeight: 600,
-                }}
-              >
-                Son değişen ürünü aç
-              </Link>
-            ) : null}
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div className="text-sm text-gray-500">Market Sayısı</div>
+            <div className="mt-2 text-3xl font-bold text-gray-900">
+              {markets.length}
+            </div>
           </div>
         </div>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1.2fr 1fr 1fr",
-            gap: 16,
-            marginBottom: 18,
-          }}
-        >
-          <div
-            style={{
-              background: "rgba(255,255,255,0.05)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              borderRadius: 18,
-              padding: 18,
-              minHeight: 150,
-            }}
-          >
-            <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 10 }}>
-              SON DEĞİŞEN ÜRÜN
-            </div>
+        <div className="mb-8">
+          <h2 className="mb-4 text-xl font-semibold text-gray-900">
+            Marketler
+          </h2>
 
-            {lastChangedProduct ? (
-              <>
-                <div style={{ fontSize: 20, fontWeight: 700, lineHeight: 1.3 }}>
-                  {lastChangedProduct.name}
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {marketSummaries.map((summary) => (
+              <Link
+                key={summary.market}
+                href={`/report?market=${encodeURIComponent(summary.market)}`}
+                className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-lg font-bold text-gray-900">
+                      {summary.market}
+                    </div>
+                    <div className="mt-1 text-sm text-gray-500">
+                      Market raporunu aç
+                    </div>
+                  </div>
+
+                  <div className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+                    {summary.total} ürün
+                  </div>
                 </div>
 
-                <div style={{ marginTop: 12, fontSize: 28, fontWeight: 800 }}>
-                  {formatPrice(lastChangedProduct.lastPrice)}
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="rounded-xl bg-gray-50 p-3">
+                    <div className="text-xs text-gray-500">Toplam</div>
+                    <div className="mt-1 text-lg font-semibold text-gray-900">
+                      {summary.total}
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl bg-gray-50 p-3">
+                    <div className="text-xs text-gray-500">Değişen</div>
+                    <div className="mt-1 text-lg font-semibold text-gray-900">
+                      {summary.changedCount}
+                    </div>
+                  </div>
                 </div>
 
-                <div style={{ marginTop: 8, fontSize: 13, color: "#94a3b8" }}>
-                  Son değişim: {formatDate(lastChangedProduct.lastChangedAt)}
+                <div className="mt-4 text-xs text-gray-500">
+                  Son güncelleme:{" "}
+                  {summary.lastUpdated
+                    ? new Date(summary.lastUpdated).toLocaleString("tr-TR")
+                    : "-"}
                 </div>
-              </>
-            ) : (
-              <div style={{ fontSize: 14, color: "#94a3b8" }}>
-                Henüz fiyat değişimi kaydı yok.
+              </Link>
+            ))}
+
+            {!marketSummaries.length && (
+              <div className="rounded-2xl border border-gray-200 bg-white p-6 text-sm text-gray-500 shadow-sm">
+                Henüz veri yok
               </div>
             )}
           </div>
-
-          <StatCard title="Toplam Ürün" value={String(products.length)} subtitle="Takipte olan ürün" />
-          <StatCard title="Son Kontrol" value={formatDate(lastCheckedAt)} subtitle="Sistemin son veri çekimi" />
         </div>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: 16,
-            marginBottom: 18,
-          }}
-        >
-          <MiniCard
-            title="Meyve Suyu Grubu"
-            value={String(products.filter((x) => x.name.toLowerCase().includes("meyve suyu")).length)}
-          />
-          <MiniCard
-            title="İçecek Grubu"
-            value={String(products.filter((x) => x.name.toLowerCase().includes("içecek")).length)}
-          />
-          <MiniCard
-            title="Detay Rapor"
-            value="Hazır"
-          />
-        </div>
+        <div>
+          <h2 className="mb-4 text-xl font-semibold text-gray-900">
+            Son Durum
+          </h2>
 
-        <div
-          style={{
-            background: "rgba(255,255,255,0.05)",
-            borderRadius: 18,
-            border: "1px solid rgba(255,255,255,0.08)",
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              padding: "18px 18px 14px",
-              borderBottom: "1px solid rgba(255,255,255,0.06)",
-            }}
-          >
-            <h2 style={{ margin: 0, fontSize: 26, fontWeight: 700 }}>Takipteki Ürünler</h2>
-            <p style={{ margin: "8px 0 0", color: "#94a3b8", fontSize: 13 }}>
-              Ürünlerin son fiyatını ve en son değişim zamanını hızlıca gör.
-            </p>
+          <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead className="bg-gray-100 text-left text-gray-700">
+                  <tr>
+                    <th className="px-4 py-3">Ürün</th>
+                    <th className="px-4 py-3">SKU</th>
+                    <th className="px-4 py-3">Market</th>
+                    <th className="px-4 py-3">Güncel Fiyat</th>
+                    <th className="px-4 py-3">Önceki Fiyat</th>
+                    <th className="px-4 py-3">Değişim</th>
+                    <th className="px-4 py-3">Detay</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item) => {
+                    const changeColor =
+                      (item.changePercent ?? 0) > 0
+                        ? "text-green-600"
+                        : (item.changePercent ?? 0) < 0
+                        ? "text-red-600"
+                        : "text-gray-500";
+
+                    return (
+                      <tr key={item.sku} className="border-t">
+                        <td className="px-4 py-3 font-medium text-gray-900">
+                          {item.name}
+                        </td>
+                        <td className="px-4 py-3 text-gray-700">{item.sku}</td>
+                        <td className="px-4 py-3 text-gray-700">
+                          {item.market}
+                        </td>
+                        <td className="px-4 py-3 font-semibold text-gray-900">
+                          {formatPrice(item.currentPrice)}
+                        </td>
+                        <td className="px-4 py-3 text-gray-700">
+                          {formatPrice(item.previousPrice)}
+                        </td>
+                        <td className={`px-4 py-3 font-semibold ${changeColor}`}>
+                          {formatPercent(item.changePercent)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Link
+                            href={`/report/${item.sku}`}
+                            className="underline underline-offset-2"
+                          >
+                            Aç
+                          </Link>
+                        </td>
+                      </tr>
+                    );
+                  })}
+
+                  {!items.length && (
+                    <tr>
+                      <td
+                        colSpan={7}
+                        className="px-4 py-10 text-center text-gray-500"
+                      >
+                        Veri bulunamadı
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-            }}
-          >
-            <thead>
-              <tr style={{ background: "rgba(2,6,23,0.55)" }}>
-                <th style={th}>Ürün</th>
-                <th style={th}>Son Fiyat</th>
-                <th style={th}>Son Değişim</th>
-                <th style={th}>Detay</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {products.map((item) => (
-                <tr key={item.sku}>
-                  <td style={tdStrong}>{item.name}</td>
-                  <td style={td}>{formatPrice(item.lastPrice)}</td>
-                  <td style={td}>{formatDate(item.lastChangedAt)}</td>
-                  <td style={td}>
-                    <Link
-                      href={`/report/${item.sku}`}
-                      style={{
-                        color: "#60a5fa",
-                        textDecoration: "none",
-                        fontSize: 13,
-                        fontWeight: 600,
-                      }}
-                    >
-                      Aç
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       </div>
     </main>
   );
 }
-
-function StatCard({
-  title,
-  value,
-  subtitle,
-}: {
-  title: string;
-  value: string;
-  subtitle: string;
-}) {
-  return (
-    <div
-      style={{
-        background: "rgba(255,255,255,0.05)",
-        border: "1px solid rgba(255,255,255,0.08)",
-        borderRadius: 18,
-        padding: 18,
-        minHeight: 150,
-      }}
-    >
-      <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 10 }}>{title}</div>
-      <div style={{ fontSize: 28, fontWeight: 800, lineHeight: 1.2 }}>{value}</div>
-      <div style={{ marginTop: 10, fontSize: 13, color: "#94a3b8", lineHeight: 1.4 }}>
-        {subtitle}
-      </div>
-    </div>
-  );
-}
-
-function MiniCard({
-  title,
-  value,
-}: {
-  title: string;
-  value: string;
-}) {
-  return (
-    <div
-      style={{
-        background: "rgba(255,255,255,0.04)",
-        border: "1px solid rgba(255,255,255,0.07)",
-        borderRadius: 16,
-        padding: 16,
-      }}
-    >
-      <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 8 }}>{title}</div>
-      <div style={{ fontSize: 22, fontWeight: 700 }}>{value}</div>
-    </div>
-  );
-}
-
-const th: React.CSSProperties = {
-  textAlign: "left",
-  padding: "12px 16px",
-  color: "#94a3b8",
-  fontSize: 12,
-  fontWeight: 700,
-};
-
-const td: React.CSSProperties = {
-  padding: "14px 16px",
-  borderTop: "1px solid rgba(255,255,255,0.06)",
-  fontSize: 13,
-  color: "white",
-};
-
-const tdStrong: React.CSSProperties = {
-  ...td,
-  fontWeight: 600,
-};

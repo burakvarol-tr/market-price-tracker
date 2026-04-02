@@ -1,179 +1,166 @@
-// @ts-nocheck
-import { db } from "@/lib/firebaseAdmin";
+import { db, admin } from "./firebaseAdmin";
+import type { MarketName, TrackedProduct, LivePriceProduct } from "./getPrice";
 
-export type ProductPrice = {
+export type PriceRecord = {
   sku: string;
   name: string;
-  price: number;
-  discountedPrice?: number | null;
-  priceText?: string | null;
-  discountedPriceText?: string | null;
-  url?: string | null;
+  market: MarketName;
+  currentPrice: number | null;
+  previousPrice: number | null;
+  changed: boolean;
+  changePercent: number | null;
+  inStock: boolean;
+  updatedAt: string;
+  source: string;
 };
 
-export type ProductHistoryItem = {
-  id: string;
-  sku?: string;
-  name?: string;
-  price?: number | null;
-  discountedPrice?: number | null;
-  priceText?: string | null;
-  discountedPriceText?: string | null;
-  url?: string | null;
-  checkedAt?: string | null;
-};
-
-export type ProductWithHistory = {
+export type PriceHistoryRecord = {
   sku: string;
   name: string;
-  url?: string | null;
-  lastPrice?: number | null;
-  lastDiscountedPrice?: number | null;
-  updatedAt?: string | null;
-  lastChangedAt?: string | null;
-  latest: ProductHistoryItem | null;
-  previous: ProductHistoryItem | null;
+  market: MarketName;
+  price: number | null;
+  inStock: boolean;
+  checkedAt: string;
 };
 
-const PRODUCTS_COLLECTION = "products";
+const COLLECTION_LATEST = "latest_prices";
+const COLLECTION_HISTORY = "price_history";
 
-export async function readPricesFromFirestore(): Promise<Record<string, number>> {
-  const snapshot = await db.collection(PRODUCTS_COLLECTION).get();
-
-  const prices: Record<string, number> = {};
-
-  snapshot.forEach((doc) => {
-    const data = doc.data();
-    if (data?.sku && typeof data?.lastPrice === "number") {
-      prices[data.sku] = data.lastPrice;
-    }
-  });
-
-  return prices;
-}
-
-export async function savePricesToFirestore(products: ProductPrice[]) {
-  const now = new Date().toISOString();
-
-  for (const product of products) {
-    const productRef = db.collection(PRODUCTS_COLLECTION).doc(product.sku);
-    const existingDoc = await productRef.get();
-    const existingData = existingDoc.exists ? existingDoc.data() : null;
-
-    const oldPrice =
-      existingData && typeof existingData.lastPrice === "number"
-        ? existingData.lastPrice
-        : null;
-
-    const isPriceChanged =
-      oldPrice !== null && typeof product.price === "number" && oldPrice !== product.price;
-
-    const lastChangedAt = isPriceChanged
-      ? now
-      : existingData?.lastChangedAt ?? null;
-
-    await productRef.set(
-      {
-        sku: product.sku,
-        name: product.name,
-        lastPrice: product.price,
-        lastDiscountedPrice: product.discountedPrice ?? null,
-        priceText: product.priceText ?? null,
-        discountedPriceText: product.discountedPriceText ?? null,
-        url: product.url ?? null,
-        updatedAt: now,
-        lastChangedAt,
-      },
-      { merge: true }
-    );
-
-    await productRef.collection("history").add({
-      sku: product.sku,
-      name: product.name,
-      price: product.price,
-      discountedPrice: product.discountedPrice ?? null,
-      priceText: product.priceText ?? null,
-      discountedPriceText: product.discountedPriceText ?? null,
-      url: product.url ?? null,
-      checkedAt: now,
-    });
+function ensureDb() {
+  if (!db) {
+    throw new Error("Firestore bağlantısı yok. Env değerlerini kontrol et.");
   }
+  return db;
 }
 
-export async function getProductHistory(
-  sku: string
-): Promise<{
-  product: Record<string, any>;
-  history: ProductHistoryItem[];
-} | null> {
-  const productRef = db.collection(PRODUCTS_COLLECTION).doc(sku);
-  const productDoc = await productRef.get();
-
-  if (!productDoc.exists) {
+function calculateChangePercent(
+  previousPrice: number | null,
+  currentPrice: number | null
+) {
+  if (
+    previousPrice === null ||
+    currentPrice === null ||
+    previousPrice === 0
+  ) {
     return null;
   }
 
-  const productData = productDoc.data() || {};
+  return Number((((currentPrice - previousPrice) / previousPrice) * 100).toFixed(2));
+}
 
-  const historySnapshot = await productRef
-    .collection("history")
-    .orderBy("checkedAt", "desc")
-    .get();
+export async function readLatestPricesMap(): Promise<Record<string, PriceRecord>> {
+  const firestore = ensureDb();
+  const snap = await firestore.collection(COLLECTION_LATEST).get();
 
-  const history: ProductHistoryItem[] = historySnapshot.docs.map((doc) => {
-    const data = doc.data() as Omit<ProductHistoryItem, "id">;
-    return {
-      id: doc.id,
-      ...data,
-    };
+  const map: Record<string, PriceRecord> = {};
+
+  snap.forEach((doc) => {
+    map[doc.id] = doc.data() as PriceRecord;
   });
 
+  return map;
+}
+
+export async function saveCheckedProducts(
+  products: LivePriceProduct[],
+  previousMap: Record<string, PriceRecord>
+) {
+  const firestore = ensureDb();
+  const batch = firestore.batch();
+
+  const nowIso = new Date().toISOString();
+  const changedProducts: PriceRecord[] = [];
+  const allSavedProducts: PriceRecord[] = [];
+
+  for (const product of products) {
+    const previous = previousMap[product.sku] || null;
+    const previousPrice = previous?.currentPrice ?? null;
+    const currentPrice = product.currentPrice ?? null;
+    const changed = previousPrice !== null && currentPrice !== null
+      ? previousPrice !== currentPrice
+      : false;
+
+    const record: PriceRecord = {
+      sku: product.sku,
+      name: product.name,
+      market: product.market,
+      currentPrice,
+      previousPrice,
+      changed,
+      changePercent: calculateChangePercent(previousPrice, currentPrice),
+      inStock: product.inStock,
+      updatedAt: nowIso,
+      source: product.market,
+    };
+
+    const latestRef = firestore.collection(COLLECTION_LATEST).doc(product.sku);
+    batch.set(latestRef, record, { merge: true });
+
+    const historyRef = firestore.collection(COLLECTION_HISTORY).doc();
+    const historyRecord: PriceHistoryRecord = {
+      sku: product.sku,
+      name: product.name,
+      market: product.market,
+      price: currentPrice,
+      inStock: product.inStock,
+      checkedAt: nowIso,
+    };
+    batch.set(historyRef, historyRecord);
+
+    allSavedProducts.push(record);
+
+    if (changed) {
+      changedProducts.push(record);
+    }
+  }
+
+  await batch.commit();
+
   return {
-    product: productData,
-    history,
+    changedProducts,
+    allSavedProducts,
   };
 }
 
-export async function getAllProductsWithHistory(): Promise<ProductWithHistory[]> {
-  const snapshot = await db
-    .collection(PRODUCTS_COLLECTION)
-    .orderBy("name", "asc")
+export async function getLatestPrices(options?: {
+  market?: string;
+}): Promise<PriceRecord[]> {
+  const firestore = ensureDb();
+  let query: FirebaseFirestore.Query = firestore.collection(COLLECTION_LATEST);
+
+  if (options?.market) {
+    query = query.where("market", "==", options.market);
+  }
+
+  const snap = await query.get();
+  const items = snap.docs.map((doc) => doc.data() as PriceRecord);
+
+  return items.sort((a, b) => a.name.localeCompare(b.name, "tr"));
+}
+
+export async function getPriceHistoryBySku(sku: string): Promise<PriceHistoryRecord[]> {
+  const firestore = ensureDb();
+
+  const snap = await firestore
+    .collection(COLLECTION_HISTORY)
+    .where("sku", "==", sku)
     .get();
 
-  const items: ProductWithHistory[] = await Promise.all(
-    snapshot.docs.map(async (doc) => {
-      const product = doc.data() || {};
+  const items = snap.docs.map((doc) => doc.data() as PriceHistoryRecord);
 
-      const historySnapshot = await doc.ref
-        .collection("history")
-        .orderBy("checkedAt", "desc")
-        .limit(2)
-        .get();
-
-      const history: ProductHistoryItem[] = historySnapshot.docs.map((h) => {
-        const data = h.data() as Omit<ProductHistoryItem, "id">;
-        return {
-          id: h.id,
-          ...data,
-        };
-      });
-
-      const latest = history[0] ?? null;
-      const previous = history[1] ?? null;
-
-      return {
-        sku: product?.sku ?? doc.id,
-        name: product?.name ?? "İsimsiz ürün",
-        url: product?.url ?? null,
-        lastPrice: product?.lastPrice ?? null,
-        lastDiscountedPrice: product?.lastDiscountedPrice ?? null,
-        updatedAt: product?.updatedAt ?? null,
-        lastChangedAt: product?.lastChangedAt ?? null,
-        latest,
-        previous,
-      };
-    })
+  return items.sort(
+    (a, b) => new Date(a.checkedAt).getTime() - new Date(b.checkedAt).getTime()
   );
+}
 
-  return items;
+export async function getLatestPriceBySku(sku: string): Promise<PriceRecord | null> {
+  const firestore = ensureDb();
+
+  const doc = await firestore.collection(COLLECTION_LATEST).doc(sku).get();
+
+  if (!doc.exists) {
+    return null;
+  }
+
+  return doc.data() as PriceRecord;
 }

@@ -1,90 +1,116 @@
-export type A101ProductInput = {
+export type MarketName = "A101" | "BIM" | "SOK" | "CARREFOUR";
+
+export type TrackedProduct = {
   sku: string;
   name: string;
-  url?: string;
+  market: MarketName;
 };
 
-export type A101ProductResult = {
-  sku: string;
-  name: string;
-  price: number;
-  discountedPrice?: number | null;
-  priceText?: string;
-  discountedPriceText?: string;
-  url?: string;
+export type LivePriceProduct = TrackedProduct & {
+  currentPrice: number | null;
+  priceText: string;
+  inStock: boolean;
+  raw?: unknown;
 };
 
-function parsePrice(value: unknown): number | null {
-  if (typeof value === "number" && !Number.isNaN(value)) {
-    return value;
-  }
+function parseA101Price(rawProduct: any): {
+  currentPrice: number | null;
+  priceText: string;
+  inStock: boolean;
+} {
+  const discounted = rawProduct?.price?.discounted;
+  const normal = rawProduct?.price?.normal;
+  const discountedStr = rawProduct?.price?.discountedStr;
+  const normalStr = rawProduct?.price?.normalStr;
 
-  if (typeof value === "string") {
-    const normalized = value.replace(",", ".").replace(/[^\d.]/g, "");
-    const parsed = Number(normalized);
-    return Number.isNaN(parsed) ? null : parsed;
-  }
+  const currentPrice =
+    typeof discounted === "number"
+      ? discounted
+      : typeof normal === "number"
+      ? normal
+      : null;
 
-  return null;
+  const priceText =
+    discountedStr ||
+    normalStr ||
+    (typeof currentPrice === "number" ? currentPrice.toFixed(2) : "-");
+
+  const stock = rawProduct?.stock;
+  const quantity = rawProduct?.quantity;
+
+  const inStock =
+    stock === "HIGH" ||
+    stock === "LOW" ||
+    stock === "MEDIUM" ||
+    Number(quantity || 0) > 0;
+
+  return {
+    currentPrice,
+    priceText,
+    inStock,
+  };
 }
 
-export async function getA101Products(
-  productList: A101ProductInput[]
-): Promise<A101ProductResult[]> {
-  const results = await Promise.all(
-    productList.map(async (item) => {
-      const endpoint = `https://rio.a101.com.tr/dbmk89vnr/CALL/Store/getProductBySku/VS032?sku=${item.sku}&channel=SLOT&__culture=tr-TR&__platform=web&data=e30%3D&__isbase64=true`;
+export async function getA101ProductBySku(
+  product: TrackedProduct
+): Promise<LivePriceProduct> {
+  const url = `https://rio.a101.com.tr/dbmk89vnr/CALL/Store/getProductBySku/VS032?sku=${product.sku}&channel=SLOT&__culture=tr-TR&__platform=web&data=e30%3D&__isbase64=true`;
 
-      const response = await fetch(endpoint, {
-        method: "GET",
-        headers: {
-          accept: "application/json, text/plain, */*",
-        },
-        cache: "no-store",
-      });
+  const res = await fetch(url, {
+    method: "GET",
+    cache: "no-store",
+    headers: {
+      Accept: "application/json, text/plain, */*",
+    },
+  });
 
-      if (!response.ok) {
-        throw new Error(`${item.sku} için A101 isteği başarısız oldu: ${response.status}`);
-      }
+  if (!res.ok) {
+    throw new Error(`${product.sku} için fiyat alınamadı. Status: ${res.status}`);
+  }
 
-      const data = await response.json();
+  const data = await res.json();
+  const rawProduct = data?.product || data?.data?.product || data;
+  const parsed = parseA101Price(rawProduct);
 
-      const product = data?.product || data?.data?.product || data;
+  return {
+    ...product,
+    currentPrice: parsed.currentPrice,
+    priceText: parsed.priceText,
+    inStock: parsed.inStock,
+    raw: data,
+  };
+}
 
-      if (!product) {
-        throw new Error(`${item.sku} için ürün verisi bulunamadı`);
-      }
-
-      const normalPrice =
-        parsePrice(product?.price?.normal) ??
-        parsePrice(product?.price?.normalStr) ??
-        parsePrice(product?.price);
-
-      const discountedPrice =
-        parsePrice(product?.price?.discounted) ??
-        parsePrice(product?.price?.discountedStr);
-
-      if (normalPrice === null) {
-        throw new Error(`${item.sku} için fiyat okunamadı`);
+export async function getProductsByMarket(
+  products: TrackedProduct[]
+): Promise<LivePriceProduct[]> {
+  const results = await Promise.allSettled(
+    products.map(async (product) => {
+      if (product.market === "A101") {
+        return getA101ProductBySku(product);
       }
 
       return {
-        sku: item.sku,
-        name: item.name || product?.name || "İsimsiz ürün",
-        price: normalPrice,
-        discountedPrice,
-        priceText:
-          product?.price?.normalStr ??
-          (normalPrice != null ? `${normalPrice} ₺` : null) ??
-          undefined,
-        discountedPriceText:
-          product?.price?.discountedStr ??
-          (discountedPrice != null ? `${discountedPrice} ₺` : null) ??
-          undefined,
-        url: item.url || product?.url || undefined,
-      };
+        ...product,
+        currentPrice: null,
+        priceText: "-",
+        inStock: false,
+        raw: null,
+      } as LivePriceProduct;
     })
   );
 
-  return results;
+  return results.map((result, index) => {
+    if (result.status === "fulfilled") {
+      return result.value;
+    }
+
+    return {
+      ...products[index],
+      currentPrice: null,
+      priceText: "-",
+      inStock: false,
+      raw: { error: result.reason instanceof Error ? result.reason.message : String(result.reason) },
+    };
+  });
 }

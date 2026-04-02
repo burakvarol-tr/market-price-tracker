@@ -1,78 +1,83 @@
 import { NextResponse } from "next/server";
-import { getA101Products } from "@/lib/getPrice";
-import { sendPriceChangeEmail } from "@/lib/sendMail";
+import { getProductsByMarket, type TrackedProduct } from "@/lib/getPrice";
 import {
-  readPricesFromFirestore,
-  savePricesToFirestore,
+  readLatestPricesMap,
+  saveCheckedProducts,
 } from "@/lib/firestorePrices";
+import { sendPriceChangeEmailByMarket } from "@/lib/sendMail";
+
+export const dynamic = "force-dynamic";
+
+const PRODUCTS: TrackedProduct[] = [
+  {
+    sku: "13002977",
+    name: "Üstad %100 Organik Meyve Suyu Elma 1 L",
+    market: "A101",
+  },
+  {
+    sku: "13002976",
+    name: "Üstad %100 Organik Meyve Suyu Sarı Meyve 1 L",
+    market: "A101",
+  },
+  {
+    sku: "13002973",
+    name: "Üstad %100 Organik Meyve Suyu Kırmızı Meyve 1 L",
+    market: "A101",
+  },
+  {
+    sku: "13002152",
+    name: "Dooy Sihirli Ejderha Meyveli İçecek 200 ml",
+    market: "A101",
+  },
+  {
+    sku: "13002151",
+    name: "Dooy Safari Meyveleri Meyveli İçecek 200 ml",
+    market: "A101",
+  },
+];
 
 export async function GET() {
   try {
-    const products = await getA101Products([
-      {
-        sku: "13002977",
-        name: "Üstad %100 Organik Meyve Suyu Elma 1 L",
-        url: "https://www.a101.com.tr/icecek/ustad-100-organik-meyve-suyu-elma-1-l-p-13002977",
-      },
-      {
-        sku: "13002976",
-        name: "Üstad %100 Organik Meyve Suyu Sarı Meyve 1 L",
-        url: "https://www.a101.com.tr/icecek/ustad-100-organik-meyve-suyu-sari-meyve-1-l-p-13002976",
-      },
-      {
-        sku: "13002973",
-        name: "Üstad %100 Organik Meyve Suyu Kırmızı Meyve 1 L",
-        url: "https://www.a101.com.tr/icecek/ustad-100-organik-meyve-suyu-kirmizi-meyve-1-l-p-13002973",
-      },
-      {
-        sku: "13002152",
-        name: "Dooy Sihirli Ejderha Meyveli İçecek 200 ml",
-        url: "https://www.a101.com.tr/icecek/dooy-sihirli-ejderha-meyveli-icecek-200-ml-p-13002152",
-      },
-      {
-        sku: "13002151",
-        name: "Dooy Safari Meyveleri Meyveli İçecek 200 ml",
-        url: "https://www.a101.com.tr/icecek/dooy-safari-meyveleri-meyveli-icecek-200-ml-p-13002151",
-      },
-    ]);
+    const previousMap = await readLatestPricesMap();
+    const liveProducts = await getProductsByMarket(PRODUCTS);
 
-    const oldPrices = await readPricesFromFirestore();
+    const { changedProducts, allSavedProducts } = await saveCheckedProducts(
+      liveProducts,
+      previousMap
+    );
 
-    const changedProducts = products
-      .filter((product) => {
-        const oldPrice = oldPrices[product.sku];
-        return typeof oldPrice === "number" && oldPrice !== product.price;
+    const groupedByMarket = changedProducts.reduce<Record<string, typeof changedProducts>>(
+      (acc, item) => {
+        if (!acc[item.market]) {
+          acc[item.market] = [];
+        }
+        acc[item.market].push(item);
+        return acc;
+      },
+      {}
+    );
+
+    const mailResults = await Promise.all(
+      Object.entries(groupedByMarket).map(async ([market, items]) => {
+        const result = await sendPriceChangeEmailByMarket(market, items);
+        return { market, count: items.length, result };
       })
-      .map((product) => ({
-        sku: product.sku,
-        name: product.name,
-        oldPrice: oldPrices[product.sku],
-        newPrice: product.price,
-      }));
-
-    await savePricesToFirestore(products);
-
-    if (changedProducts.length > 0) {
-      await sendPriceChangeEmail(changedProducts);
-    }
+    );
 
     return NextResponse.json({
       ok: true,
-      checkedCount: products.length,
+      checkedCount: allSavedProducts.length,
       changedCount: changedProducts.length,
       changedProducts,
+      mailResults,
     });
-  } catch (error: any) {
-    console.error("CHECK_PRICES_ERROR:", error);
+  } catch (error) {
+    console.error("check-prices error:", error);
 
     return NextResponse.json(
       {
         ok: false,
-        message: error?.message || "Kontrol sırasında hata oldu",
-        stack:
-          process.env.NODE_ENV === "development"
-            ? error?.stack || null
-            : undefined,
+        message: error instanceof Error ? error.message : "Bilinmeyen hata",
       },
       { status: 500 }
     );

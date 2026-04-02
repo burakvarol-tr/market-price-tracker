@@ -1,5 +1,5 @@
-import { db, admin } from "./firebaseAdmin";
-import type { MarketName, TrackedProduct, LivePriceProduct } from "./getPrice";
+import { db } from "./firebaseAdmin";
+import type { MarketName, LivePriceProduct } from "./getPrice";
 
 export type PriceRecord = {
   sku: string;
@@ -16,8 +16,8 @@ export type PriceRecord = {
 
 export type PriceHistoryRecord = {
   sku: string;
-  name: string;
-  market: MarketName;
+  name?: string;
+  market?: MarketName;
   price: number | null;
   inStock: boolean;
   checkedAt: string;
@@ -33,6 +33,19 @@ function ensureDb() {
   return db;
 }
 
+function normalizePrice(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "number" || Number.isNaN(value)) return null;
+
+  // Firestore’da bazı kayıtlar kuruş gibi 11900 şeklinde olabilir.
+  // 11900 -> 119.00 olarak düzelt.
+  if (value >= 1000) {
+    return Number((value / 100).toFixed(2));
+  }
+
+  return Number(value.toFixed(2));
+}
+
 function calculateChangePercent(
   previousPrice: number | null,
   currentPrice: number | null
@@ -45,7 +58,9 @@ function calculateChangePercent(
     return null;
   }
 
-  return Number((((currentPrice - previousPrice) / previousPrice) * 100).toFixed(2));
+  return Number(
+    (((currentPrice - previousPrice) / previousPrice) * 100).toFixed(2)
+  );
 }
 
 export async function readLatestPricesMap(): Promise<Record<string, PriceRecord>> {
@@ -55,7 +70,21 @@ export async function readLatestPricesMap(): Promise<Record<string, PriceRecord>
   const map: Record<string, PriceRecord> = {};
 
   snap.forEach((doc) => {
-    map[doc.id] = doc.data() as PriceRecord;
+    const data = doc.data();
+
+    map[doc.id] = {
+      sku: String(data.sku ?? doc.id),
+      name: String(data.name ?? ""),
+      market: (data.market ?? "A101") as MarketName,
+      currentPrice: normalizePrice(data.currentPrice),
+      previousPrice: normalizePrice(data.previousPrice),
+      changed: Boolean(data.changed),
+      changePercent:
+        typeof data.changePercent === "number" ? data.changePercent : null,
+      inStock: Boolean(data.inStock),
+      updatedAt: String(data.updatedAt ?? ""),
+      source: String(data.source ?? data.market ?? ""),
+    };
   });
 
   return map;
@@ -76,9 +105,11 @@ export async function saveCheckedProducts(
     const previous = previousMap[product.sku] || null;
     const previousPrice = previous?.currentPrice ?? null;
     const currentPrice = product.currentPrice ?? null;
-    const changed = previousPrice !== null && currentPrice !== null
-      ? previousPrice !== currentPrice
-      : false;
+
+    const changed =
+      previousPrice !== null && currentPrice !== null
+        ? previousPrice !== currentPrice
+        : false;
 
     const record: PriceRecord = {
       sku: product.sku,
@@ -133,34 +164,93 @@ export async function getLatestPrices(options?: {
   }
 
   const snap = await query.get();
-  const items = snap.docs.map((doc) => doc.data() as PriceRecord);
+
+  const items = snap.docs.map((doc) => {
+    const data = doc.data();
+
+    return {
+      sku: String(data.sku ?? doc.id),
+      name: String(data.name ?? ""),
+      market: (data.market ?? "A101") as MarketName,
+      currentPrice: normalizePrice(data.currentPrice),
+      previousPrice: normalizePrice(data.previousPrice),
+      changed: Boolean(data.changed),
+      changePercent:
+        typeof data.changePercent === "number" ? data.changePercent : null,
+      inStock: Boolean(data.inStock),
+      updatedAt: String(data.updatedAt ?? ""),
+      source: String(data.source ?? data.market ?? ""),
+    } as PriceRecord;
+  });
 
   return items.sort((a, b) => a.name.localeCompare(b.name, "tr"));
 }
 
-export async function getPriceHistoryBySku(sku: string): Promise<PriceHistoryRecord[]> {
-  const firestore = ensureDb();
+export async function getLatestPriceBySku(
+  sku: string
+): Promise<PriceRecord | null> {
+  try {
+    const firestore = ensureDb();
+    const doc = await firestore.collection(COLLECTION_LATEST).doc(sku).get();
 
-  const snap = await firestore
-    .collection(COLLECTION_HISTORY)
-    .where("sku", "==", sku)
-    .get();
+    if (!doc.exists) {
+      return null;
+    }
 
-  const items = snap.docs.map((doc) => doc.data() as PriceHistoryRecord);
+    const data = doc.data();
 
-  return items.sort(
-    (a, b) => new Date(a.checkedAt).getTime() - new Date(b.checkedAt).getTime()
-  );
-}
+    if (!data) {
+      return null;
+    }
 
-export async function getLatestPriceBySku(sku: string): Promise<PriceRecord | null> {
-  const firestore = ensureDb();
-
-  const doc = await firestore.collection(COLLECTION_LATEST).doc(sku).get();
-
-  if (!doc.exists) {
+    return {
+      sku: String(data.sku ?? sku),
+      name: String(data.name ?? ""),
+      market: (data.market ?? "A101") as MarketName,
+      currentPrice: normalizePrice(data.currentPrice),
+      previousPrice: normalizePrice(data.previousPrice),
+      changed: Boolean(data.changed),
+      changePercent:
+        typeof data.changePercent === "number" ? data.changePercent : null,
+      inStock: Boolean(data.inStock),
+      updatedAt: String(data.updatedAt ?? ""),
+      source: String(data.source ?? data.market ?? ""),
+    };
+  } catch (error) {
+    console.error("getLatestPriceBySku error:", error);
     return null;
   }
+}
 
-  return doc.data() as PriceRecord;
+export async function getPriceHistoryBySku(
+  sku: string
+): Promise<PriceHistoryRecord[]> {
+  try {
+    const firestore = ensureDb();
+
+    const snap = await firestore
+      .collection(COLLECTION_HISTORY)
+      .where("sku", "==", sku)
+      .get();
+
+    const items = snap.docs.map((doc) => {
+      const data = doc.data();
+
+      return {
+        sku: String(data.sku ?? sku),
+        name: data.name ? String(data.name) : undefined,
+        market: data.market ? (data.market as MarketName) : undefined,
+        price: normalizePrice(data.price),
+        inStock: Boolean(data.inStock),
+        checkedAt: String(data.checkedAt ?? ""),
+      } as PriceHistoryRecord;
+    });
+
+    return items.sort(
+      (a, b) => new Date(b.checkedAt).getTime() - new Date(a.checkedAt).getTime()
+    );
+  } catch (error) {
+    console.error("getPriceHistoryBySku error:", error);
+    return [];
+  }
 }

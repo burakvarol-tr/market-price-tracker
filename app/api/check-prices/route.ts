@@ -36,6 +36,24 @@ const PRODUCTS: TrackedProduct[] = [
   },
 ];
 
+function buildMarketReportUrl(market: string, skus: string[]) {
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    "https://market-price-tracker-gold.vercel.app";
+
+  const query = new URLSearchParams();
+
+  if (market) {
+    query.set("market", market);
+  }
+
+  if (skus.length > 0) {
+    query.set("changed", skus.join(","));
+  }
+
+  return `${baseUrl}/report?${query.toString()}`;
+}
+
 export async function GET() {
   try {
     const previousMap = await readLatestPricesMap();
@@ -60,15 +78,54 @@ export async function GET() {
     const mailResults = await Promise.all(
       Object.entries(groupedByMarket).map(async ([market, items]) => {
         const result = await sendPriceChangeEmailByMarket(market, items);
-        return { market, count: items.length, result };
+
+        return {
+          market,
+          changedCount: items.length,
+          reportUrl: buildMarketReportUrl(
+            market,
+            items.map((item) => item.sku)
+          ),
+          mailResult: result,
+        };
       })
     );
+
+    const summaryByMarket = allSavedProducts.reduce<
+      Record<
+        string,
+        {
+          market: string;
+          total: number;
+          changedCount: number;
+          reportUrl: string;
+        }
+      >
+    >((acc, item) => {
+      if (!acc[item.market]) {
+        acc[item.market] = {
+          market: item.market,
+          total: 0,
+          changedCount: 0,
+          reportUrl: buildMarketReportUrl(item.market, []),
+        };
+      }
+
+      acc[item.market].total += 1;
+
+      if (item.changed) {
+        acc[item.market].changedCount += 1;
+      }
+
+      return acc;
+    }, {});
 
     return NextResponse.json({
       ok: true,
       checkedCount: allSavedProducts.length,
       changedCount: changedProducts.length,
       changedProducts,
+      markets: Object.values(summaryByMarket),
       mailResults,
     });
   } catch (error) {

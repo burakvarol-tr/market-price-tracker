@@ -13,13 +13,26 @@ export type LivePriceProduct = TrackedProduct & {
   raw?: unknown;
 };
 
+function normalizeA101Number(value: unknown): number | null {
+  if (typeof value !== "number" || Number.isNaN(value)) return null;
+
+  // A101 bazen 11900 gibi kuruş döndürüyor
+  // bunu 119.00 TL yapıyoruz
+  if (value >= 1000) {
+    return Number((value / 100).toFixed(2));
+  }
+
+  return Number(value.toFixed(2));
+}
+
 function parseA101Price(rawProduct: any): {
   currentPrice: number | null;
   priceText: string;
   inStock: boolean;
 } {
-  const discounted = rawProduct?.price?.discounted;
-  const normal = rawProduct?.price?.normal;
+  const discounted = normalizeA101Number(rawProduct?.price?.discounted);
+  const normal = normalizeA101Number(rawProduct?.price?.normal);
+
   const discountedStr = rawProduct?.price?.discountedStr;
   const normalStr = rawProduct?.price?.normalStr;
 
@@ -110,7 +123,12 @@ export async function getProductsByMarket(
       currentPrice: null,
       priceText: "-",
       inStock: false,
-      raw: { error: result.reason instanceof Error ? result.reason.message : String(result.reason) },
+      raw: {
+        error:
+          result.reason instanceof Error
+            ? result.reason.message
+            : String(result.reason),
+      },
     };
   });
 }

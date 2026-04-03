@@ -21,6 +21,10 @@ function getRowStyle(item: PriceRecord, changedSet: Set<string>) {
   return "bg-white";
 }
 
+function getInitial(name: string) {
+  return (name || "Ü").trim().charAt(0).toUpperCase();
+}
+
 export default async function ReportPage({
   searchParams,
 }: {
@@ -185,20 +189,8 @@ export default async function ReportPage({
                       >
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="h-12 w-12 overflow-hidden rounded-xl border border-[#E5EAF2] bg-[#F8FAFD] flex items-center justify-center">
-                              {item.imageUrl ? (
-                                <img
-                                  src={item.imageUrl}
-                                  alt={item.name}
-                                  className="h-full w-full object-cover"
-                                  onError={(e) => {
-                                    const target = e.currentTarget;
-                                    target.style.display = "none";
-                                  }}
-                                />
-                              ) : (
-                                <span className="text-xs text-[#94A3B8]">Ürün</span>
-                              )}
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#DCE4F0] bg-[linear-gradient(135deg,#EEF4FF_0%,#F8FBFF_100%)] text-sm font-bold text-[#3B5B8F]">
+                              {getInitial(item.name)}
                             </div>
                             <div className="font-medium text-[#0F172A]">
                               {item.name}

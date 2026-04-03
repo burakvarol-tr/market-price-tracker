@@ -11,6 +11,10 @@ function formatPrice(price: number | null) {
   return `${price.toFixed(2)} TL`;
 }
 
+function getInitial(name: string) {
+  return (name || "Ü").trim().charAt(0).toUpperCase();
+}
+
 export default async function ProductDetailPage({
   searchParams,
 }: {
@@ -90,16 +94,8 @@ export default async function ProductDetailPage({
               </div>
 
               <div className="flex flex-col gap-5 md:flex-row md:items-center">
-                <div className="h-24 w-24 overflow-hidden rounded-2xl border border-[#E5EAF2] bg-white flex items-center justify-center">
-                  {latest.imageUrl ? (
-                    <img
-                      src={latest.imageUrl}
-                      alt={latest.name}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-sm text-[#94A3B8]">Ürün</span>
-                  )}
+                <div className="flex h-24 w-24 items-center justify-center rounded-2xl border border-[#DCE4F0] bg-[linear-gradient(135deg,#EEF4FF_0%,#F8FBFF_100%)] text-3xl font-bold text-[#3B5B8F]">
+                  {getInitial(latest.name)}
                 </div>
 
                 <div>

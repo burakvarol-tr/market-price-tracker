@@ -31,8 +31,28 @@ export type PriceHistoryRecord = {
   eventType?: "initial" | "price_changed" | "stock_changed" | "price_and_stock_changed";
 };
 
+export type ChangeEventItem = {
+  sku: string;
+  name: string;
+  market: MarketName;
+  previousPrice: number | null;
+  currentPrice: number | null;
+  changePercent: number | null;
+  inStock: boolean;
+  checkedAt: string;
+};
+
+export type ChangeEventRecord = {
+  id: string;
+  market: string;
+  createdAt: string;
+  itemCount: number;
+  items: ChangeEventItem[];
+};
+
 const COLLECTION_LATEST = "latest_prices";
 const COLLECTION_HISTORY = "price_history";
+const COLLECTION_CHANGE_EVENTS = "change_events";
 
 function ensureDb() {
   if (!db) {
@@ -365,5 +385,81 @@ export async function getPriceHistoryBySku(
   } catch (error) {
     console.error("getPriceHistoryBySku error:", error);
     return [];
+  }
+}
+
+export async function createChangeEvent(
+  market: string,
+  items: PriceRecord[]
+): Promise<string> {
+  const firestore = ensureDb();
+  const docRef = firestore.collection(COLLECTION_CHANGE_EVENTS).doc();
+  const createdAt = new Date().toISOString();
+
+  const payload: Omit<ChangeEventRecord, "id"> = {
+    market,
+    createdAt,
+    itemCount: items.length,
+    items: items.map((item) => ({
+      sku: item.sku,
+      name: item.name,
+      market: item.market,
+      previousPrice: item.previousPrice,
+      currentPrice: item.currentPrice,
+      changePercent: item.changePercent,
+      inStock: item.inStock,
+      checkedAt: createdAt,
+    })),
+  };
+
+  await docRef.set(payload);
+
+  return docRef.id;
+}
+
+export async function getChangeEventById(
+  eventId: string
+): Promise<ChangeEventRecord | null> {
+  try {
+    const firestore = ensureDb();
+    const doc = await firestore
+      .collection(COLLECTION_CHANGE_EVENTS)
+      .doc(eventId)
+      .get();
+
+    if (!doc.exists) {
+      return null;
+    }
+
+    const data = doc.data();
+
+    if (!data) {
+      return null;
+    }
+
+    const itemsRaw = Array.isArray(data.items) ? data.items : [];
+
+    return {
+      id: doc.id,
+      market: String(data.market ?? ""),
+      createdAt: String(data.createdAt ?? ""),
+      itemCount: Number(data.itemCount ?? itemsRaw.length ?? 0),
+      items: itemsRaw.map((item) => ({
+        sku: String(item?.sku ?? ""),
+        name: String(item?.name ?? ""),
+        market: (item?.market ?? data.market ?? "A101") as MarketName,
+        previousPrice: normalizePrice(item?.previousPrice),
+        currentPrice: normalizePrice(item?.currentPrice),
+        changePercent:
+          typeof item?.changePercent === "number"
+            ? item.changePercent
+            : null,
+        inStock: Boolean(item?.inStock),
+        checkedAt: String(item?.checkedAt ?? data.createdAt ?? ""),
+      })),
+    };
+  } catch (error) {
+    console.error("getChangeEventById error:", error);
+    return null;
   }
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getProductsByMarket, type TrackedProduct } from "@/lib/getPrice";
 import {
+  createChangeEvent,
   readLatestPricesMap,
   saveCheckedProducts,
 } from "@/lib/firestorePrices";
@@ -81,22 +82,15 @@ const PRODUCTS: TrackedProduct[] = [
   },
 ];
 
-function buildMarketReportUrl(market: string, skus: string[]) {
-  const baseUrl =
+function getBaseUrl() {
+  return (
     process.env.NEXT_PUBLIC_APP_URL ||
-    "https://market-price-tracker-gold.vercel.app";
+    "https://market-price-tracker-gold.vercel.app"
+  );
+}
 
-  const query = new URLSearchParams();
-
-  if (market) {
-    query.set("market", market);
-  }
-
-  if (skus.length > 0) {
-    query.set("changed", skus.join(","));
-  }
-
-  return `${baseUrl}/report?${query.toString()}`;
+function buildEventReportUrl(eventId: string) {
+  return `${getBaseUrl()}/report/event?eventId=${encodeURIComponent(eventId)}`;
 }
 
 export async function GET() {
@@ -122,15 +116,20 @@ export async function GET() {
 
     const mailResults = await Promise.all(
       Object.entries(groupedByMarket).map(async ([market, items]) => {
-        const result = await sendPriceChangeEmailByMarket(market, items);
+        const eventId = await createChangeEvent(market, items);
+        const reportUrl = buildEventReportUrl(eventId);
+
+        const result = await sendPriceChangeEmailByMarket(
+          market,
+          items,
+          reportUrl
+        );
 
         return {
           market,
           changedCount: items.length,
-          reportUrl: buildMarketReportUrl(
-            market,
-            items.map((item) => item.sku)
-          ),
+          eventId,
+          reportUrl,
           mailResult: result,
         };
       })
@@ -143,7 +142,6 @@ export async function GET() {
           market: string;
           total: number;
           changedCount: number;
-          reportUrl: string;
         }
       >
     >((acc, item) => {
@@ -152,7 +150,6 @@ export async function GET() {
           market: item.market,
           total: 0,
           changedCount: 0,
-          reportUrl: buildMarketReportUrl(item.market, []),
         };
       }
 

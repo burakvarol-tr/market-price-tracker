@@ -153,7 +153,7 @@ export default async function ProductDetailPage({
               <table className="min-w-full text-sm">
                 <thead className="bg-[#F7F9FC] text-left text-[#536273]">
                   <tr>
-                    <th className="px-5 py-4 font-semibold">Tarih</th>
+                    <th className="px-5 py-4 font-semibold">Son Güncelleme</th>
                     <th className="px-5 py-4 font-semibold">Fiyat</th>
                     <th className="px-5 py-4 font-semibold">Stok</th>
                   </tr>

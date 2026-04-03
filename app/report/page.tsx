@@ -8,8 +8,8 @@ function formatPrice(price: number | null) {
   return `${price.toFixed(2)} TL`;
 }
 
-function formatPercent(value: number | null) {
-  if (value === null || Number.isNaN(value)) return "-";
+function formatPercent(value: number | null, changed: boolean) {
+  if (!changed || value === null || Number.isNaN(value)) return "-";
   const sign = value > 0 ? "+" : "";
   return `${sign}${value.toFixed(2)}%`;
 }
@@ -172,8 +172,8 @@ export default async function ReportPage({
                 </thead>
                 <tbody>
                   {items.map((item, index) => {
-                    const changePositive = (item.changePercent ?? 0) > 0;
-                    const changeNegative = (item.changePercent ?? 0) < 0;
+                    const changePositive = item.changed && (item.changePercent ?? 0) > 0;
+                    const changeNegative = item.changed && (item.changePercent ?? 0) < 0;
 
                     return (
                       <tr
@@ -196,7 +196,7 @@ export default async function ReportPage({
                         <td className="px-6 py-4 text-[#657488]">{item.sku}</td>
                         <td className="px-6 py-4 text-[#657488]">{item.market}</td>
                         <td className="px-6 py-4 text-[#657488]">
-                          {formatPrice(item.previousPrice)}
+                          {item.changed ? formatPrice(item.previousPrice) : "-"}
                         </td>
                         <td className="px-6 py-4 font-semibold text-[#0F172A]">
                           {formatPrice(item.currentPrice)}
@@ -211,7 +211,7 @@ export default async function ReportPage({
                                 : "border border-slate-200 bg-slate-100 text-slate-600"
                             }`}
                           >
-                            {formatPercent(item.changePercent)}
+                            {formatPercent(item.changePercent, item.changed)}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-[#657488]">

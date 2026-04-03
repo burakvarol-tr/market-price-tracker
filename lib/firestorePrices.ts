@@ -155,7 +155,8 @@ export async function saveCheckedProducts(
     const currentPrice = normalizePrice(product.currentPrice);
 
     const isFirstSave = !previous;
-    const priceChanged = !isFirstSave && !isSamePrice(previousCurrentPrice, currentPrice);
+    const priceChanged =
+      !isFirstSave && !isSamePrice(previousCurrentPrice, currentPrice);
     const stockChanged = !isFirstSave && previous.inStock !== product.inStock;
 
     const finalImageUrl = resolveImageUrl(
@@ -163,30 +164,20 @@ export async function saveCheckedProducts(
       product.imageUrl ?? previous?.imageUrl ?? null
     );
 
-    const nextPreviousPrice = priceChanged
-      ? previousCurrentPrice
-      : previous?.previousPrice ?? null;
-
-    const nextChangePercent = priceChanged
-      ? calculateChangePercent(previousCurrentPrice, currentPrice)
-      : previous?.changePercent ?? null;
-
-    const nextLastChangedAt = priceChanged
-      ? nowIso
-      : previous?.lastChangedAt ?? null;
-
     const record: PriceRecord = {
       sku: product.sku,
       name: product.name,
       market: product.market,
       currentPrice,
-      previousPrice: nextPreviousPrice,
+      previousPrice: priceChanged ? previousCurrentPrice : null,
       changed: priceChanged,
-      changePercent: nextChangePercent,
+      changePercent: priceChanged
+        ? calculateChangePercent(previousCurrentPrice, currentPrice)
+        : null,
       inStock: product.inStock,
       updatedAt: nowIso,
       lastCheckedAt: nowIso,
-      lastChangedAt: nextLastChangedAt,
+      lastChangedAt: priceChanged ? nowIso : previous?.lastChangedAt ?? null,
       source: product.market,
       imageUrl: finalImageUrl,
     };

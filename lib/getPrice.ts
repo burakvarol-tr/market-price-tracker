@@ -123,17 +123,57 @@ export async function getA101ProductBySku(
   };
 }
 
-function parseWalmartPriceFromHtml(html: string): number | null {
+function safeNumber(value: unknown): number | null {
+  if (typeof value === "number" && !Number.isNaN(value)) {
+    return Number(value.toFixed(2));
+  }
+
+  if (typeof value === "string") {
+    const cleaned = value.replace(/[^0-9.]/g, "");
+    const parsed = Number(cleaned);
+
+    if (!Number.isNaN(parsed)) {
+      return Number(parsed.toFixed(2));
+    }
+  }
+
+  return null;
+}
+
+function extractJsonLdPrice(html: string): number | null {
+  const matches = [...html.matchAll(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi)];
+
+  for (const match of matches) {
+    const content = match[1];
+
+    try {
+      const parsed = JSON.parse(content);
+
+      const blocks = Array.isArray(parsed) ? parsed : [parsed];
+
+      for (const block of blocks) {
+        const offerPrice = safeNumber(block?.offers?.price);
+        if (offerPrice !== null) return offerPrice;
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return null;
+}
+
+function extractPriceFromStructuredBlocks(html: string): number | null {
   const patterns = [
-    /"price":\s*([0-9]+(?:\.[0-9]+)?)/,
-    /"currentPrice":\s*\{\s*"price":\s*([0-9]+(?:\.[0-9]+)?)/,
-    /"priceString":"\$?([0-9]+(?:\.[0-9]+)?)"/,
-    /"salePrice":"\$?([0-9]+(?:\.[0-9]+)?)"/,
+    /"priceInfo"\s*:\s*\{\s*"currentPrice"\s*:\s*\{\s*"price"\s*:\s*([0-9]+(?:\.[0-9]+)?)/,
+    /"currentPrice"\s*:\s*\{\s*"price"\s*:\s*([0-9]+(?:\.[0-9]+)?)/,
+    /"priceString"\s*:\s*"\$([0-9]+(?:\.[0-9]+)?)"/,
+    /"currentPrice"\s*:\s*"\$?([0-9]+(?:\.[0-9]+)?)"/,
   ];
 
   for (const pattern of patterns) {
     const match = html.match(pattern);
-    if (match) {
+    if (match?.[1]) {
       const value = Number(match[1]);
       if (!Number.isNaN(value)) {
         return Number(value.toFixed(2));
@@ -144,10 +184,20 @@ function parseWalmartPriceFromHtml(html: string): number | null {
   return null;
 }
 
+function parseWalmartPriceFromHtml(html: string): number | null {
+  const jsonLdPrice = extractJsonLdPrice(html);
+  if (jsonLdPrice !== null) return jsonLdPrice;
+
+  const structuredPrice = extractPriceFromStructuredBlocks(html);
+  if (structuredPrice !== null) return structuredPrice;
+
+  return null;
+}
+
 function parseWalmartImageFromHtml(html: string): string | null {
   const patterns = [
-    /"image":"(https?:\/\/[^"]+)"/,
-    /"thumbnailUrl":"(https?:\/\/[^"]+)"/,
+    /"image"\s*:\s*"([^"]+)"/,
+    /"thumbnailUrl"\s*:\s*"([^"]+)"/,
   ];
 
   for (const pattern of patterns) {

@@ -185,7 +185,7 @@ export default async function HomePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((item) => {
+                  {items.map((item, index) => {
                     const changePositive = (item.changePercent ?? 0) > 0;
                     const changeNegative = (item.changePercent ?? 0) < 0;
 
@@ -194,8 +194,15 @@ export default async function HomePage() {
                         key={item.sku}
                         className="border-t border-[#EFF3F7] transition hover:bg-[#FBFCFF]"
                       >
-                        <td className="px-6 py-4 font-medium text-[#0F172A]">
-                          {item.name}
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#DCE4F0] bg-[linear-gradient(135deg,#EEF4FF_0%,#F8FBFF_100%)] text-sm font-bold text-[#3B5B8F]">
+                              {index + 1}
+                            </div>
+                            <div className="font-medium text-[#0F172A]">
+                              {item.name}
+                            </div>
+                          </div>
                         </td>
                         <td className="px-6 py-4 text-[#657488]">{item.sku}</td>
                         <td className="px-6 py-4 text-[#657488]">{item.market}</td>

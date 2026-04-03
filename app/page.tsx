@@ -8,8 +8,8 @@ function formatPrice(price?: number | null) {
   return `${price.toFixed(2)} TL`;
 }
 
-function formatPercent(value?: number | null) {
-  if (value == null || Number.isNaN(value)) return "-";
+function formatPercent(value?: number | null, changed?: boolean) {
+  if (!changed || value == null || Number.isNaN(value)) return "-";
   const sign = value > 0 ? "+" : "";
   return `${sign}${value.toFixed(2)}%`;
 }
@@ -37,24 +37,23 @@ export default async function HomePage() {
   });
 
   return (
-    <main className="min-h-screen bg-[#F6F8FB] text-[#0F172A]">
+    <main className="min-h-screen bg-[linear-gradient(180deg,#EEF4FF_0%,#F5F8FD_45%,#FAFCFF_100%)] text-[#0F172A]">
       <div className="mx-auto max-w-7xl px-5 py-8 md:px-8 md:py-10">
-        <section className="relative mb-8 overflow-hidden rounded-[32px] border border-[#E8EDF5] bg-[linear-gradient(135deg,#FFFFFF_0%,#FAFCFF_55%,#F3F7FF_100%)] p-7 shadow-[0_18px_50px_rgba(15,23,42,0.05)] md:p-10">
-          <div className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-[#DCEBFF] blur-3xl opacity-50" />
-          <div className="pointer-events-none absolute bottom-0 left-0 h-28 w-28 rounded-full bg-white blur-2xl opacity-70" />
+        <section className="relative mb-8 overflow-hidden rounded-[32px] border border-[#DCE7F5] bg-[linear-gradient(135deg,#FDFEFF_0%,#F4F8FF_58%,#EAF2FF_100%)] p-7 shadow-[0_18px_50px_rgba(15,23,42,0.05)] md:p-10">
+          <div className="pointer-events-none absolute -right-12 -top-10 h-48 w-48 rounded-full bg-[#CFE1FF] blur-3xl opacity-55" />
+          <div className="pointer-events-none absolute bottom-0 left-0 h-28 w-28 rounded-full bg-white blur-2xl opacity-80" />
 
           <div className="relative max-w-3xl">
-            <div className="mb-4 inline-flex rounded-full border border-[#D9E4F2] bg-white/85 px-4 py-1.5 text-[12px] font-semibold tracking-[0.08em] text-[#3B5B8F] backdrop-blur">
+            <div className="mb-4 inline-flex rounded-full border border-[#D5E2F2] bg-white/90 px-4 py-1.5 text-[12px] font-semibold tracking-[0.08em] text-[#3B5B8F] backdrop-blur">
               MARKET PRICE TRACKER
             </div>
 
             <h1 className="text-3xl font-semibold tracking-[-0.03em] text-[#0F172A] md:text-5xl">
-              Market bazlı fiyat takip paneli
+              Market Fiyat Takibi
             </h1>
 
             <p className="mt-4 max-w-2xl text-[16px] leading-8 text-[#5E6B7D] md:text-[17px]">
-              Ürün fiyatlarını tek ekranda izle, değişimleri hızlıca gör ve
-              market bazlı raporları sade, yumuşak ve premium bir görünümle yönet.
+              Seçili ürünlerin güncel fiyatlarını tek ekranda takip et.
             </p>
 
             <div className="mt-7 flex flex-wrap gap-3">
@@ -73,21 +72,21 @@ export default async function HomePage() {
         </section>
 
         <section className="mb-9 grid gap-4 md:grid-cols-3">
-          <div className="rounded-[26px] border border-[#E7ECF3] bg-white/95 p-6 shadow-[0_10px_30px_rgba(15,23,42,0.035)]">
+          <div className="rounded-[26px] border border-[#E1EAF5] bg-white/95 p-6 shadow-[0_10px_30px_rgba(15,23,42,0.035)]">
             <div className="text-sm font-medium text-[#738195]">Toplam Ürün</div>
             <div className="mt-3 text-4xl font-semibold tracking-[-0.04em] text-[#0F172A]">
               {items.length}
             </div>
           </div>
 
-          <div className="rounded-[26px] border border-[#E7ECF3] bg-white/95 p-6 shadow-[0_10px_30px_rgba(15,23,42,0.035)]">
+          <div className="rounded-[26px] border border-[#E1EAF5] bg-white/95 p-6 shadow-[0_10px_30px_rgba(15,23,42,0.035)]">
             <div className="text-sm font-medium text-[#738195]">Fiyat Değişen</div>
             <div className="mt-3 text-4xl font-semibold tracking-[-0.04em] text-[#0F172A]">
               {items.filter((x) => x.changed).length}
             </div>
           </div>
 
-          <div className="rounded-[26px] border border-[#E7ECF3] bg-white/95 p-6 shadow-[0_10px_30px_rgba(15,23,42,0.035)]">
+          <div className="rounded-[26px] border border-[#E1EAF5] bg-white/95 p-6 shadow-[0_10px_30px_rgba(15,23,42,0.035)]">
             <div className="text-sm font-medium text-[#738195]">Market Sayısı</div>
             <div className="mt-3 text-4xl font-semibold tracking-[-0.04em] text-[#0F172A]">
               {markets.length}
@@ -110,7 +109,7 @@ export default async function HomePage() {
               <Link
                 key={summary.market}
                 href={`/report?market=${encodeURIComponent(summary.market)}`}
-                className="group rounded-[28px] border border-[#E7ECF3] bg-[linear-gradient(180deg,#FFFFFF_0%,#FBFCFE_100%)] p-6 shadow-[0_12px_32px_rgba(15,23,42,0.035)] transition duration-200 hover:-translate-y-[2px] hover:shadow-[0_18px_40px_rgba(15,23,42,0.06)]"
+                className="group rounded-[28px] border border-[#E3EBF5] bg-[linear-gradient(180deg,#FFFFFF_0%,#F8FBFF_100%)] p-6 shadow-[0_12px_32px_rgba(15,23,42,0.035)] transition duration-200 hover:-translate-y-[2px] hover:shadow-[0_18px_40px_rgba(15,23,42,0.06)]"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -170,10 +169,10 @@ export default async function HomePage() {
             </p>
           </div>
 
-          <div className="overflow-hidden rounded-[30px] border border-[#E7ECF3] bg-white shadow-[0_14px_36px_rgba(15,23,42,0.04)]">
+          <div className="overflow-hidden rounded-[30px] border border-[#E3EBF5] bg-white shadow-[0_14px_36px_rgba(15,23,42,0.04)]">
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
-                <thead className="bg-[#F8FAFD] text-left text-[#5F7083]">
+                <thead className="bg-[#F4F8FD] text-left text-[#5F7083]">
                   <tr>
                     <th className="px-6 py-4 font-semibold">Ürün</th>
                     <th className="px-6 py-4 font-semibold">SKU</th>
@@ -186,8 +185,8 @@ export default async function HomePage() {
                 </thead>
                 <tbody>
                   {items.map((item, index) => {
-                    const changePositive = (item.changePercent ?? 0) > 0;
-                    const changeNegative = (item.changePercent ?? 0) < 0;
+                    const changePositive = item.changed && (item.changePercent ?? 0) > 0;
+                    const changeNegative = item.changed && (item.changePercent ?? 0) < 0;
 
                     return (
                       <tr
@@ -210,7 +209,7 @@ export default async function HomePage() {
                           {formatPrice(item.currentPrice)}
                         </td>
                         <td className="px-6 py-4 text-[#657488]">
-                          {formatPrice(item.previousPrice)}
+                          {item.changed ? formatPrice(item.previousPrice) : "-"}
                         </td>
                         <td className="px-6 py-4">
                           <span
@@ -222,7 +221,7 @@ export default async function HomePage() {
                                 : "border border-slate-200 bg-slate-100 text-slate-600"
                             }`}
                           >
-                            {formatPercent(item.changePercent)}
+                            {formatPercent(item.changePercent, item.changed)}
                           </span>
                         </td>
                         <td className="px-6 py-4">

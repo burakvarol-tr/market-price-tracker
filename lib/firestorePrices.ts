@@ -12,6 +12,8 @@ export type PriceRecord = {
   changePercent: number | null;
   inStock: boolean;
   updatedAt: string;
+  lastCheckedAt?: string;
+  lastChangedAt?: string | null;
   source: string;
   imageUrl: string | null;
 };
@@ -21,9 +23,12 @@ export type PriceHistoryRecord = {
   name?: string;
   market?: MarketName;
   price: number | null;
+  previousPrice?: number | null;
+  changePercent?: number | null;
   inStock: boolean;
   checkedAt: string;
   imageUrl?: string | null;
+  eventType?: "initial" | "price_changed" | "stock_changed" | "price_and_stock_changed";
 };
 
 const COLLECTION_LATEST = "latest_prices";
@@ -38,13 +43,30 @@ function ensureDb() {
 
 function normalizePrice(value: unknown): number | null {
   if (value === null || value === undefined) return null;
-  if (typeof value !== "number" || Number.isNaN(value)) return null;
 
-  if (value >= 1000) {
-    return Number((value / 100).toFixed(2));
+  if (typeof value === "number") {
+    if (Number.isNaN(value)) return null;
+
+    if (value >= 1000) {
+      return Number((value / 100).toFixed(2));
+    }
+
+    return Number(value.toFixed(2));
   }
 
-  return Number(value.toFixed(2));
+  if (typeof value === "string") {
+    const normalized = Number(value.replace(",", ".").trim());
+
+    if (Number.isNaN(normalized)) return null;
+
+    if (normalized >= 1000) {
+      return Number((normalized / 100).toFixed(2));
+    }
+
+    return Number(normalized.toFixed(2));
+  }
+
+  return null;
 }
 
 function calculateChangePercent(
@@ -69,6 +91,17 @@ function resolveImageUrl(sku: string, incoming?: string | null) {
   return getFixedProductImage(sku);
 }
 
+function isSamePrice(a: number | null, b: number | null) {
+  return a === b;
+}
+
+function buildHistoryEventType(priceChanged: boolean, stockChanged: boolean) {
+  if (priceChanged && stockChanged) return "price_and_stock_changed";
+  if (priceChanged) return "price_changed";
+  if (stockChanged) return "stock_changed";
+  return "initial";
+}
+
 export async function readLatestPricesMap(): Promise<Record<string, PriceRecord>> {
   const firestore = ensureDb();
   const snap = await firestore.collection(COLLECTION_LATEST).get();
@@ -89,7 +122,10 @@ export async function readLatestPricesMap(): Promise<Record<string, PriceRecord>
       changePercent:
         typeof data.changePercent === "number" ? data.changePercent : null,
       inStock: Boolean(data.inStock),
-      updatedAt: String(data.updatedAt ?? ""),
+      updatedAt: String(data.updatedAt ?? data.lastCheckedAt ?? ""),
+      lastCheckedAt: String(data.lastCheckedAt ?? data.updatedAt ?? ""),
+      lastChangedAt:
+        typeof data.lastChangedAt === "string" ? data.lastChangedAt : null,
       source: String(data.source ?? data.market ?? ""),
       imageUrl: resolveImageUrl(
         sku,
@@ -114,29 +150,43 @@ export async function saveCheckedProducts(
 
   for (const product of products) {
     const previous = previousMap[product.sku] || null;
-    const previousPrice = previous?.currentPrice ?? null;
-    const currentPrice = product.currentPrice ?? null;
 
-    const changed =
-      previousPrice !== null && currentPrice !== null
-        ? previousPrice !== currentPrice
-        : false;
+    const previousCurrentPrice = previous?.currentPrice ?? null;
+    const currentPrice = normalizePrice(product.currentPrice);
+
+    const isFirstSave = !previous;
+    const priceChanged = !isFirstSave && !isSamePrice(previousCurrentPrice, currentPrice);
+    const stockChanged = !isFirstSave && previous.inStock !== product.inStock;
 
     const finalImageUrl = resolveImageUrl(
       product.sku,
       product.imageUrl ?? previous?.imageUrl ?? null
     );
 
+    const nextPreviousPrice = priceChanged
+      ? previousCurrentPrice
+      : previous?.previousPrice ?? null;
+
+    const nextChangePercent = priceChanged
+      ? calculateChangePercent(previousCurrentPrice, currentPrice)
+      : previous?.changePercent ?? null;
+
+    const nextLastChangedAt = priceChanged
+      ? nowIso
+      : previous?.lastChangedAt ?? null;
+
     const record: PriceRecord = {
       sku: product.sku,
       name: product.name,
       market: product.market,
       currentPrice,
-      previousPrice,
-      changed,
-      changePercent: calculateChangePercent(previousPrice, currentPrice),
+      previousPrice: nextPreviousPrice,
+      changed: priceChanged,
+      changePercent: nextChangePercent,
       inStock: product.inStock,
       updatedAt: nowIso,
+      lastCheckedAt: nowIso,
+      lastChangedAt: nextLastChangedAt,
       source: product.market,
       imageUrl: finalImageUrl,
     };
@@ -144,21 +194,32 @@ export async function saveCheckedProducts(
     const latestRef = firestore.collection(COLLECTION_LATEST).doc(product.sku);
     batch.set(latestRef, record, { merge: true });
 
-    const historyRef = firestore.collection(COLLECTION_HISTORY).doc();
-    const historyRecord: PriceHistoryRecord = {
-      sku: product.sku,
-      name: product.name,
-      market: product.market,
-      price: currentPrice,
-      inStock: product.inStock,
-      checkedAt: nowIso,
-      imageUrl: finalImageUrl,
-    };
-    batch.set(historyRef, historyRecord);
+    const shouldWriteHistory = isFirstSave || priceChanged || stockChanged;
+
+    if (shouldWriteHistory) {
+      const historyRef = firestore.collection(COLLECTION_HISTORY).doc();
+
+      const historyRecord: PriceHistoryRecord = {
+        sku: product.sku,
+        name: product.name,
+        market: product.market,
+        price: currentPrice,
+        previousPrice: priceChanged ? previousCurrentPrice : null,
+        changePercent: priceChanged
+          ? calculateChangePercent(previousCurrentPrice, currentPrice)
+          : null,
+        inStock: product.inStock,
+        checkedAt: nowIso,
+        imageUrl: finalImageUrl,
+        eventType: buildHistoryEventType(priceChanged, stockChanged),
+      };
+
+      batch.set(historyRef, historyRecord);
+    }
 
     allSavedProducts.push(record);
 
-    if (changed) {
+    if (priceChanged) {
       changedProducts.push(record);
     }
   }
@@ -197,7 +258,10 @@ export async function getLatestPrices(options?: {
       changePercent:
         typeof data.changePercent === "number" ? data.changePercent : null,
       inStock: Boolean(data.inStock),
-      updatedAt: String(data.updatedAt ?? ""),
+      updatedAt: String(data.updatedAt ?? data.lastCheckedAt ?? ""),
+      lastCheckedAt: String(data.lastCheckedAt ?? data.updatedAt ?? ""),
+      lastChangedAt:
+        typeof data.lastChangedAt === "string" ? data.lastChangedAt : null,
       source: String(data.source ?? data.market ?? ""),
       imageUrl: resolveImageUrl(
         sku,
@@ -236,7 +300,10 @@ export async function getLatestPriceBySku(
       changePercent:
         typeof data.changePercent === "number" ? data.changePercent : null,
       inStock: Boolean(data.inStock),
-      updatedAt: String(data.updatedAt ?? ""),
+      updatedAt: String(data.updatedAt ?? data.lastCheckedAt ?? ""),
+      lastCheckedAt: String(data.lastCheckedAt ?? data.updatedAt ?? ""),
+      lastChangedAt:
+        typeof data.lastChangedAt === "string" ? data.lastChangedAt : null,
       source: String(data.source ?? data.market ?? ""),
       imageUrl: resolveImageUrl(
         sku,
@@ -260,26 +327,50 @@ export async function getPriceHistoryBySku(
       .where("sku", "==", sku)
       .get();
 
-    const items = snap.docs.map((doc) => {
-      const data = doc.data();
+    const items = snap.docs
+      .map((doc) => {
+        const data = doc.data();
 
-      return {
-        sku: String(data.sku ?? sku),
-        name: data.name ? String(data.name) : undefined,
-        market: data.market ? (data.market as MarketName) : undefined,
-        price: normalizePrice(data.price),
-        inStock: Boolean(data.inStock),
-        checkedAt: String(data.checkedAt ?? ""),
-        imageUrl: resolveImageUrl(
-          sku,
-          typeof data.imageUrl === "string" ? data.imageUrl : null
-        ),
-      } as PriceHistoryRecord;
-    });
+        return {
+          sku: String(data.sku ?? sku),
+          name: data.name ? String(data.name) : undefined,
+          market: data.market ? (data.market as MarketName) : undefined,
+          price: normalizePrice(data.price),
+          previousPrice: normalizePrice(data.previousPrice),
+          changePercent:
+            typeof data.changePercent === "number" ? data.changePercent : null,
+          inStock: Boolean(data.inStock),
+          checkedAt: String(data.checkedAt ?? ""),
+          imageUrl: resolveImageUrl(
+            sku,
+            typeof data.imageUrl === "string" ? data.imageUrl : null
+          ),
+          eventType:
+            typeof data.eventType === "string"
+              ? (data.eventType as PriceHistoryRecord["eventType"])
+              : undefined,
+        } as PriceHistoryRecord;
+      })
+      .sort(
+        (a, b) =>
+          new Date(b.checkedAt).getTime() - new Date(a.checkedAt).getTime()
+      );
 
-    return items.sort(
-      (a, b) => new Date(b.checkedAt).getTime() - new Date(a.checkedAt).getTime()
-    );
+    const deduped: PriceHistoryRecord[] = [];
+    let lastKey = "";
+
+    for (const item of items) {
+      const key = `${item.price ?? "null"}-${item.inStock}`;
+
+      if (key === lastKey) {
+        continue;
+      }
+
+      deduped.push(item);
+      lastKey = key;
+    }
+
+    return deduped;
   } catch (error) {
     console.error("getPriceHistoryBySku error:", error);
     return [];

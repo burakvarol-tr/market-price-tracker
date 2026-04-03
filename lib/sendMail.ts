@@ -40,12 +40,12 @@ function buildDetailUrl(baseUrl: string, sku: string) {
 
 function getChangeColor(value: number | null | undefined) {
   if (value === null || value === undefined || Number.isNaN(value)) {
-    return "#94A3B8";
+    return "#64748B";
   }
 
-  if (value > 0) return "#34D399";
-  if (value < 0) return "#F87171";
-  return "#94A3B8";
+  if (value > 0) return "#059669";
+  if (value < 0) return "#DC2626";
+  return "#64748B";
 }
 
 function buildHtml(baseUrl: string, market: string, items: MailItem[]) {
@@ -58,29 +58,29 @@ function buildHtml(baseUrl: string, market: string, items: MailItem[]) {
 
       return `
         <tr>
-          <td style="padding:14px 16px;border-top:1px solid #24324F;vertical-align:top;">
-            <div style="font-size:15px;font-weight:700;color:#F8FAFC;line-height:1.35;">
+          <td style="padding:12px 12px;border-top:1px solid #E5E7EB;vertical-align:top;">
+            <div style="font-size:15px;font-weight:700;color:#0F172A;line-height:1.35;">
               ${item.name}
             </div>
-            <div style="margin-top:5px;font-size:12px;color:#94A3B8;">
+            <div style="margin-top:4px;font-size:12px;color:#64748B;">
               SKU: ${item.sku}
             </div>
           </td>
 
-          <td style="padding:14px 16px;border-top:1px solid #24324F;vertical-align:top;white-space:nowrap;font-size:14px;color:#CBD5E1;">
+          <td style="padding:12px 12px;border-top:1px solid #E5E7EB;vertical-align:top;font-size:14px;color:#334155;white-space:nowrap;">
             ${formatPrice(item.previousPrice)} → ${formatPrice(item.currentPrice)}
           </td>
 
-          <td style="padding:14px 16px;border-top:1px solid #24324F;vertical-align:top;white-space:nowrap;">
+          <td style="padding:12px 12px;border-top:1px solid #E5E7EB;vertical-align:top;white-space:nowrap;">
             <span style="font-size:14px;font-weight:800;color:${color};">
               ${formatPercent(percent)}
             </span>
           </td>
 
-          <td style="padding:14px 16px;border-top:1px solid #24324F;vertical-align:top;white-space:nowrap;">
+          <td style="padding:12px 12px;border-top:1px solid #E5E7EB;vertical-align:top;white-space:nowrap;">
             <a
               href="${buildDetailUrl(baseUrl, item.sku)}"
-              style="color:#A5B4FC;font-weight:700;text-decoration:none;"
+              style="color:#4F46E5;font-weight:700;text-decoration:none;"
             >
               Detayı Aç
             </a>
@@ -91,83 +91,65 @@ function buildHtml(baseUrl: string, market: string, items: MailItem[]) {
     .join("");
 
   return `
-    <div style="margin:0;padding:24px 12px;background:linear-gradient(180deg,#EAF1FF 0%,#F5F8FF 100%);">
+    <div style="margin:0;padding:20px 10px;background:#F8FAFC;">
       <div style="
         max-width:760px;
         margin:0 auto;
-        background:linear-gradient(180deg,#13213A 0%,#0F172A 100%);
-        border:1px solid #23314D;
-        border-radius:22px;
-        padding:24px;
+        background:#FFFFFF;
+        border:1px solid #E5E7EB;
+        border-radius:16px;
+        padding:18px;
         font-family:Arial,sans-serif;
       ">
         <div style="
           font-size:12px;
-          color:#9DB4FF;
+          color:#64748B;
           font-weight:800;
-          letter-spacing:0.08em;
-          margin-bottom:16px;
+          letter-spacing:0.06em;
+          margin-bottom:14px;
         ">
           MARKET PRICE TRACKER
         </div>
 
         <h1 style="
           margin:0 0 14px 0;
-          font-size:30px;
-          line-height:1.15;
-          color:#FFFFFF;
+          font-size:22px;
+          line-height:1.2;
+          color:#0F172A;
           font-weight:800;
         ">
           ${market} fiyat değişimi
         </h1>
 
         <p style="
-          margin:0 0 22px 0;
-          color:#B8C4D9;
+          margin:0 0 18px 0;
+          color:#52637A;
           font-size:15px;
-          line-height:1.7;
+          line-height:1.6;
         ">
           Takip edilen ürünlerde fiyat değişimi tespit edildi.
         </p>
 
-        <div style="margin-bottom:22px;">
-          <a
-            href="${reportUrl}"
-            style="
-              display:inline-block;
-              padding:12px 20px;
-              border-radius:999px;
-              background:linear-gradient(135deg,#2563EB 0%,#4F46E5 100%);
-              color:#FFFFFF;
-              text-decoration:none;
-              font-size:14px;
-              font-weight:700;
-            "
-          >
-            Raporu Aç
-          </a>
-        </div>
-
         <div style="
-          border:1px solid #24324F;
-          border-radius:16px;
+          border:1px solid #E5E7EB;
+          border-radius:12px;
           overflow:hidden;
-          background:#111C31;
+          background:#FFFFFF;
         ">
           <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
             <colgroup>
-              <col style="width:49%;" />
-              <col style="width:25%;" />
-              <col style="width:13%;" />
-              <col style="width:13%;" />
+              <col style="width:48%;" />
+              <col style="width:28%;" />
+              <col style="width:12%;" />
+              <col style="width:12%;" />
             </colgroup>
 
             <thead>
-              <tr style="background:#16233D;">
-                <th style="padding:12px 16px;text-align:left;color:#B8C4D9;font-size:13px;font-weight:700;">Ürün</th>
-                <th style="padding:12px 16px;text-align:left;color:#B8C4D9;font-size:13px;font-weight:700;">Fiyat</th>
-                <th style="padding:12px 16px;text-align:left;color:#B8C4D9;font-size:13px;font-weight:700;">Değişim</th>
-                <th style="padding:12px 16px;text-align:left;color:#B8C4D9;font-size:13px;font-weight:700;">Detay</th>
+              <tr style="background:#F1F5F9;">
+                <th style="padding:12px 12px;text-align:left;color:#475569;font-size:13px;font-weight:700;">Ürün</th>
+                <th style="padding:12px 12px;text-align:left;color:#475569;font-size:13px;font-weight:700;">Fiyat</th>
+                <th style="padding:12px 12px;text-align:left;color:#475569;font-size:13px;font-weight:700;">Değişim</th>
+                <th style="padding:12px 12px;text-align:left;color:#475569;font-size:13px;font-weight:700;">Detay</th>
               </tr>
             </thead>
 
@@ -175,6 +157,15 @@ function buildHtml(baseUrl: string, market: string, items: MailItem[]) {
               ${rows}
             </tbody>
           </table>
+        </div>
+
+        <div style="margin-top:16px;">
+          <a
+            href="${reportUrl}"
+            style="color:#4F46E5;font-weight:700;text-decoration:none;font-size:14px;"
+          >
+            Raporu Aç
+          </a>
         </div>
       </div>
     </div>

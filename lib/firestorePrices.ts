@@ -1,5 +1,6 @@
 import { db } from "./firebaseAdmin";
 import type { MarketName, LivePriceProduct } from "./getPrice";
+import { getFixedProductImage } from "./productImages";
 
 export type PriceRecord = {
   sku: string;
@@ -63,6 +64,11 @@ function calculateChangePercent(
   );
 }
 
+function resolveImageUrl(sku: string, incoming?: string | null) {
+  if (incoming && incoming.trim()) return incoming;
+  return getFixedProductImage(sku);
+}
+
 export async function readLatestPricesMap(): Promise<Record<string, PriceRecord>> {
   const firestore = ensureDb();
   const snap = await firestore.collection(COLLECTION_LATEST).get();
@@ -71,9 +77,10 @@ export async function readLatestPricesMap(): Promise<Record<string, PriceRecord>
 
   snap.forEach((doc) => {
     const data = doc.data();
+    const sku = String(data.sku ?? doc.id);
 
     map[doc.id] = {
-      sku: String(data.sku ?? doc.id),
+      sku,
       name: String(data.name ?? ""),
       market: (data.market ?? "A101") as MarketName,
       currentPrice: normalizePrice(data.currentPrice),
@@ -84,10 +91,10 @@ export async function readLatestPricesMap(): Promise<Record<string, PriceRecord>
       inStock: Boolean(data.inStock),
       updatedAt: String(data.updatedAt ?? ""),
       source: String(data.source ?? data.market ?? ""),
-      imageUrl:
-        typeof data.imageUrl === "string" && data.imageUrl.trim()
-          ? data.imageUrl
-          : null,
+      imageUrl: resolveImageUrl(
+        sku,
+        typeof data.imageUrl === "string" ? data.imageUrl : null
+      ),
     };
   });
 
@@ -115,6 +122,11 @@ export async function saveCheckedProducts(
         ? previousPrice !== currentPrice
         : false;
 
+    const finalImageUrl = resolveImageUrl(
+      product.sku,
+      product.imageUrl ?? previous?.imageUrl ?? null
+    );
+
     const record: PriceRecord = {
       sku: product.sku,
       name: product.name,
@@ -126,7 +138,7 @@ export async function saveCheckedProducts(
       inStock: product.inStock,
       updatedAt: nowIso,
       source: product.market,
-      imageUrl: product.imageUrl ?? previous?.imageUrl ?? null,
+      imageUrl: finalImageUrl,
     };
 
     const latestRef = firestore.collection(COLLECTION_LATEST).doc(product.sku);
@@ -140,7 +152,7 @@ export async function saveCheckedProducts(
       price: currentPrice,
       inStock: product.inStock,
       checkedAt: nowIso,
-      imageUrl: product.imageUrl ?? null,
+      imageUrl: finalImageUrl,
     };
     batch.set(historyRef, historyRecord);
 
@@ -173,9 +185,10 @@ export async function getLatestPrices(options?: {
 
   const items = snap.docs.map((doc) => {
     const data = doc.data();
+    const sku = String(data.sku ?? doc.id);
 
     return {
-      sku: String(data.sku ?? doc.id),
+      sku,
       name: String(data.name ?? ""),
       market: (data.market ?? "A101") as MarketName,
       currentPrice: normalizePrice(data.currentPrice),
@@ -186,10 +199,10 @@ export async function getLatestPrices(options?: {
       inStock: Boolean(data.inStock),
       updatedAt: String(data.updatedAt ?? ""),
       source: String(data.source ?? data.market ?? ""),
-      imageUrl:
-        typeof data.imageUrl === "string" && data.imageUrl.trim()
-          ? data.imageUrl
-          : null,
+      imageUrl: resolveImageUrl(
+        sku,
+        typeof data.imageUrl === "string" ? data.imageUrl : null
+      ),
     } as PriceRecord;
   });
 
@@ -225,10 +238,10 @@ export async function getLatestPriceBySku(
       inStock: Boolean(data.inStock),
       updatedAt: String(data.updatedAt ?? ""),
       source: String(data.source ?? data.market ?? ""),
-      imageUrl:
-        typeof data.imageUrl === "string" && data.imageUrl.trim()
-          ? data.imageUrl
-          : null,
+      imageUrl: resolveImageUrl(
+        sku,
+        typeof data.imageUrl === "string" ? data.imageUrl : null
+      ),
     };
   } catch (error) {
     console.error("getLatestPriceBySku error:", error);
@@ -257,10 +270,10 @@ export async function getPriceHistoryBySku(
         price: normalizePrice(data.price),
         inStock: Boolean(data.inStock),
         checkedAt: String(data.checkedAt ?? ""),
-        imageUrl:
-          typeof data.imageUrl === "string" && data.imageUrl.trim()
-            ? data.imageUrl
-            : null,
+        imageUrl: resolveImageUrl(
+          sku,
+          typeof data.imageUrl === "string" ? data.imageUrl : null
+        ),
       } as PriceHistoryRecord;
     });
 

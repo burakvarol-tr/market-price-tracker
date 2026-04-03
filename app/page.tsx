@@ -202,6 +202,10 @@ export default async function HomePage() {
                                   src={item.imageUrl}
                                   alt={item.name}
                                   className="h-full w-full object-cover"
+                                  onError={(e) => {
+                                    const target = e.currentTarget;
+                                    target.style.display = "none";
+                                  }}
                                 />
                               ) : (
                                 <span className="text-xs text-[#94A3B8]">Ürün</span>

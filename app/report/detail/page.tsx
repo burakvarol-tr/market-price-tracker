@@ -84,19 +84,35 @@ export default async function ProductDetailPage({
       <main className="min-h-screen bg-[#F5F7FA] text-[#0F172A]">
         <div className="mx-auto max-w-6xl px-5 py-8 md:px-8 md:py-10">
           <section className="mb-8 rounded-[28px] border border-[#E7ECF3] bg-gradient-to-br from-white via-[#F8FAFC] to-[#EEF4FF] p-7 shadow-[0_10px_40px_rgba(15,23,42,0.05)] md:p-9">
-            <div className="max-w-3xl">
+            <div className="max-w-4xl">
               <div className="mb-3 inline-flex rounded-full border border-[#D8E3F2] bg-white/80 px-3 py-1 text-[12px] font-semibold tracking-wide text-[#315B9E]">
                 PRODUCT DETAIL
               </div>
 
-              <h1 className="text-3xl font-semibold tracking-[-0.02em] text-[#0F172A] md:text-4xl">
-                {latest.name}
-              </h1>
+              <div className="flex flex-col gap-5 md:flex-row md:items-center">
+                <div className="h-24 w-24 overflow-hidden rounded-2xl border border-[#E5EAF2] bg-white flex items-center justify-center">
+                  {latest.imageUrl ? (
+                    <img
+                      src={latest.imageUrl}
+                      alt={latest.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-sm text-[#94A3B8]">Ürün</span>
+                  )}
+                </div>
 
-              <p className="mt-3 text-[15px] leading-7 text-[#5B6B80] md:text-base">
-                Ürünün güncel durumunu ve fiyat geçmişini sade, yumuşak ve premium
-                bir görünümle inceleyin.
-              </p>
+                <div>
+                  <h1 className="text-3xl font-semibold tracking-[-0.02em] text-[#0F172A] md:text-4xl">
+                    {latest.name}
+                  </h1>
+
+                  <p className="mt-3 text-[15px] leading-7 text-[#5B6B80] md:text-base">
+                    Ürünün güncel durumunu ve fiyat geçmişini sade, yumuşak ve premium
+                    bir görünümle inceleyin.
+                  </p>
+                </div>
+              </div>
 
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link

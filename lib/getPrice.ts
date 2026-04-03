@@ -10,14 +10,13 @@ export type LivePriceProduct = TrackedProduct & {
   currentPrice: number | null;
   priceText: string;
   inStock: boolean;
+  imageUrl: string | null;
   raw?: unknown;
 };
 
 function normalizeA101Number(value: unknown): number | null {
   if (typeof value !== "number" || Number.isNaN(value)) return null;
 
-  // A101 bazen 11900 gibi kuruş döndürüyor
-  // bunu 119.00 TL yapıyoruz
   if (value >= 1000) {
     return Number((value / 100).toFixed(2));
   }
@@ -25,10 +24,36 @@ function normalizeA101Number(value: unknown): number | null {
   return Number(value.toFixed(2));
 }
 
+function pickImageUrl(rawProduct: any): string | null {
+  const candidates = [
+    rawProduct?.images?.[0]?.original,
+    rawProduct?.images?.[0]?.large,
+    rawProduct?.images?.[0]?.medium,
+    rawProduct?.images?.[0]?.small,
+    rawProduct?.images?.[0]?.url,
+    rawProduct?.image?.original,
+    rawProduct?.image?.large,
+    rawProduct?.image?.medium,
+    rawProduct?.image?.small,
+    rawProduct?.image?.url,
+    rawProduct?.primaryImage,
+    rawProduct?.imageUrl,
+  ];
+
+  for (const item of candidates) {
+    if (typeof item === "string" && item.trim()) {
+      return item.trim();
+    }
+  }
+
+  return null;
+}
+
 function parseA101Price(rawProduct: any): {
   currentPrice: number | null;
   priceText: string;
   inStock: boolean;
+  imageUrl: string | null;
 } {
   const discounted = normalizeA101Number(rawProduct?.price?.discounted);
   const normal = normalizeA101Number(rawProduct?.price?.normal);
@@ -57,10 +82,13 @@ function parseA101Price(rawProduct: any): {
     stock === "MEDIUM" ||
     Number(quantity || 0) > 0;
 
+  const imageUrl = pickImageUrl(rawProduct);
+
   return {
     currentPrice,
     priceText,
     inStock,
+    imageUrl,
   };
 }
 
@@ -90,6 +118,7 @@ export async function getA101ProductBySku(
     currentPrice: parsed.currentPrice,
     priceText: parsed.priceText,
     inStock: parsed.inStock,
+    imageUrl: parsed.imageUrl,
     raw: data,
   };
 }
@@ -108,6 +137,7 @@ export async function getProductsByMarket(
         currentPrice: null,
         priceText: "-",
         inStock: false,
+        imageUrl: null,
         raw: null,
       } as LivePriceProduct;
     })
@@ -123,6 +153,7 @@ export async function getProductsByMarket(
       currentPrice: null,
       priceText: "-",
       inStock: false,
+      imageUrl: null,
       raw: {
         error:
           result.reason instanceof Error

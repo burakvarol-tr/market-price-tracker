@@ -12,6 +12,7 @@ export type PriceRecord = {
   inStock: boolean;
   updatedAt: string;
   source: string;
+  imageUrl: string | null;
 };
 
 export type PriceHistoryRecord = {
@@ -21,6 +22,7 @@ export type PriceHistoryRecord = {
   price: number | null;
   inStock: boolean;
   checkedAt: string;
+  imageUrl?: string | null;
 };
 
 const COLLECTION_LATEST = "latest_prices";
@@ -37,8 +39,6 @@ function normalizePrice(value: unknown): number | null {
   if (value === null || value === undefined) return null;
   if (typeof value !== "number" || Number.isNaN(value)) return null;
 
-  // Firestore’da bazı kayıtlar kuruş gibi 11900 şeklinde olabilir.
-  // 11900 -> 119.00 olarak düzelt.
   if (value >= 1000) {
     return Number((value / 100).toFixed(2));
   }
@@ -84,6 +84,10 @@ export async function readLatestPricesMap(): Promise<Record<string, PriceRecord>
       inStock: Boolean(data.inStock),
       updatedAt: String(data.updatedAt ?? ""),
       source: String(data.source ?? data.market ?? ""),
+      imageUrl:
+        typeof data.imageUrl === "string" && data.imageUrl.trim()
+          ? data.imageUrl
+          : null,
     };
   });
 
@@ -122,6 +126,7 @@ export async function saveCheckedProducts(
       inStock: product.inStock,
       updatedAt: nowIso,
       source: product.market,
+      imageUrl: product.imageUrl ?? previous?.imageUrl ?? null,
     };
 
     const latestRef = firestore.collection(COLLECTION_LATEST).doc(product.sku);
@@ -135,6 +140,7 @@ export async function saveCheckedProducts(
       price: currentPrice,
       inStock: product.inStock,
       checkedAt: nowIso,
+      imageUrl: product.imageUrl ?? null,
     };
     batch.set(historyRef, historyRecord);
 
@@ -180,6 +186,10 @@ export async function getLatestPrices(options?: {
       inStock: Boolean(data.inStock),
       updatedAt: String(data.updatedAt ?? ""),
       source: String(data.source ?? data.market ?? ""),
+      imageUrl:
+        typeof data.imageUrl === "string" && data.imageUrl.trim()
+          ? data.imageUrl
+          : null,
     } as PriceRecord;
   });
 
@@ -215,6 +225,10 @@ export async function getLatestPriceBySku(
       inStock: Boolean(data.inStock),
       updatedAt: String(data.updatedAt ?? ""),
       source: String(data.source ?? data.market ?? ""),
+      imageUrl:
+        typeof data.imageUrl === "string" && data.imageUrl.trim()
+          ? data.imageUrl
+          : null,
     };
   } catch (error) {
     console.error("getLatestPriceBySku error:", error);
@@ -243,6 +257,10 @@ export async function getPriceHistoryBySku(
         price: normalizePrice(data.price),
         inStock: Boolean(data.inStock),
         checkedAt: String(data.checkedAt ?? ""),
+        imageUrl:
+          typeof data.imageUrl === "string" && data.imageUrl.trim()
+            ? data.imageUrl
+            : null,
       } as PriceHistoryRecord;
     });
 

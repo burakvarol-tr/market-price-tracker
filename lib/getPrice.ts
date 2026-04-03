@@ -123,7 +123,7 @@ export async function getA101ProductBySku(
   };
 }
 
-function safeNumber(value: unknown): number | null {
+function safeNumber(value: string | number | null | undefined): number | null {
   if (typeof value === "number" && !Number.isNaN(value)) {
     return Number(value.toFixed(2));
   }
@@ -136,60 +136,6 @@ function safeNumber(value: unknown): number | null {
       return Number(parsed.toFixed(2));
     }
   }
-
-  return null;
-}
-
-function extractJsonLdPrice(html: string): number | null {
-  const matches = [...html.matchAll(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi)];
-
-  for (const match of matches) {
-    const content = match[1];
-
-    try {
-      const parsed = JSON.parse(content);
-
-      const blocks = Array.isArray(parsed) ? parsed : [parsed];
-
-      for (const block of blocks) {
-        const offerPrice = safeNumber(block?.offers?.price);
-        if (offerPrice !== null) return offerPrice;
-      }
-    } catch {
-      continue;
-    }
-  }
-
-  return null;
-}
-
-function extractPriceFromStructuredBlocks(html: string): number | null {
-  const patterns = [
-    /"priceInfo"\s*:\s*\{\s*"currentPrice"\s*:\s*\{\s*"price"\s*:\s*([0-9]+(?:\.[0-9]+)?)/,
-    /"currentPrice"\s*:\s*\{\s*"price"\s*:\s*([0-9]+(?:\.[0-9]+)?)/,
-    /"priceString"\s*:\s*"\$([0-9]+(?:\.[0-9]+)?)"/,
-    /"currentPrice"\s*:\s*"\$?([0-9]+(?:\.[0-9]+)?)"/,
-  ];
-
-  for (const pattern of patterns) {
-    const match = html.match(pattern);
-    if (match?.[1]) {
-      const value = Number(match[1]);
-      if (!Number.isNaN(value)) {
-        return Number(value.toFixed(2));
-      }
-    }
-  }
-
-  return null;
-}
-
-function parseWalmartPriceFromHtml(html: string): number | null {
-  const jsonLdPrice = extractJsonLdPrice(html);
-  if (jsonLdPrice !== null) return jsonLdPrice;
-
-  const structuredPrice = extractPriceFromStructuredBlocks(html);
-  if (structuredPrice !== null) return structuredPrice;
 
   return null;
 }
@@ -208,6 +154,52 @@ function parseWalmartImageFromHtml(html: string): string | null {
   }
 
   return null;
+}
+
+function parseWalmartPriceFromHtml(html: string): {
+  price: number | null;
+  source: string;
+} {
+  const patterns: Array<{ source: string; pattern: RegExp }> = [
+    {
+      source: "selected_single",
+      pattern: /selected,\s*Single,\s*\$([0-9]+(?:\.[0-9]+)?)/i,
+    },
+    {
+      source: "pack_size_single",
+      pattern: /Pack Size:Single[\s\S]{0,200}?\$([0-9]+(?:\.[0-9]+)?)/i,
+    },
+    {
+      source: "current_price_usd",
+      pattern: /Current price is USD\$([0-9]+(?:\.[0-9]+)?)/i,
+    },
+    {
+      source: "one_time_purchase",
+      pattern: /One-time purchase\s*\$([0-9]+(?:\.[0-9]+)?)/i,
+    },
+    {
+      source: "subscribe_price",
+      pattern: /Subscribe[\s\S]{0,120}?\$([0-9]+(?:\.[0-9]+)?)/i,
+    },
+  ];
+
+  for (const item of patterns) {
+    const match = html.match(item.pattern);
+    if (match?.[1]) {
+      const price = safeNumber(match[1]);
+      if (price !== null) {
+        return {
+          price,
+          source: item.source,
+        };
+      }
+    }
+  }
+
+  return {
+    price: null,
+    source: "not_found",
+  };
 }
 
 async function getWalmartProductBySku(
@@ -242,19 +234,22 @@ async function getWalmartProductBySku(
     }
 
     const html = await res.text();
-
-    const price = parseWalmartPriceFromHtml(html);
+    const parsedPrice = parseWalmartPriceFromHtml(html);
     const imageUrl = parseWalmartImageFromHtml(html);
 
     return {
       ...product,
-      currentPrice: price,
-      priceText: typeof price === "number" ? `$${price.toFixed(2)}` : "-",
-      inStock: price !== null,
+      currentPrice: parsedPrice.price,
+      priceText:
+        typeof parsedPrice.price === "number"
+          ? `$${parsedPrice.price.toFixed(2)}`
+          : "-",
+      inStock: parsedPrice.price !== null,
       imageUrl,
       raw: {
         source: "walmart_html",
-        priceFound: price !== null,
+        priceFound: parsedPrice.price !== null,
+        priceSource: parsedPrice.source,
       },
     };
   } catch (error) {

@@ -11,10 +11,6 @@ function formatPrice(price: number | null) {
   return `${price.toFixed(2)} TL`;
 }
 
-function getInitial(name: string) {
-  return (name || "Ü").trim().charAt(0).toUpperCase();
-}
-
 export default async function ProductDetailPage({
   searchParams,
 }: {
@@ -93,21 +89,15 @@ export default async function ProductDetailPage({
                 PRODUCT DETAIL
               </div>
 
-              <div className="flex flex-col gap-5 md:flex-row md:items-center">
-                <div className="flex h-24 w-24 items-center justify-center rounded-2xl border border-[#DCE4F0] bg-[linear-gradient(135deg,#EEF4FF_0%,#F8FBFF_100%)] text-3xl font-bold text-[#3B5B8F]">
-                  {getInitial(latest.name)}
-                </div>
+              <div>
+                <h1 className="text-3xl font-semibold tracking-[-0.02em] text-[#0F172A] md:text-4xl">
+                  {latest.name}
+                </h1>
 
-                <div>
-                  <h1 className="text-3xl font-semibold tracking-[-0.02em] text-[#0F172A] md:text-4xl">
-                    {latest.name}
-                  </h1>
-
-                  <p className="mt-3 text-[15px] leading-7 text-[#5B6B80] md:text-base">
-                    Ürünün güncel durumunu ve fiyat geçmişini sade, yumuşak ve premium
-                    bir görünümle inceleyin.
-                  </p>
-                </div>
+                <p className="mt-3 text-[15px] leading-7 text-[#5B6B80] md:text-base">
+                  Ürünün güncel durumunu ve fiyat geçmişini sade, yumuşak ve premium
+                  bir görünümle inceleyin.
+                </p>
               </div>
 
               <div className="mt-6 flex flex-wrap gap-3">

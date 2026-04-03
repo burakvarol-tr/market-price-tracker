@@ -194,27 +194,8 @@ export default async function HomePage() {
                         key={item.sku}
                         className="border-t border-[#EFF3F7] transition hover:bg-[#FBFCFF]"
                       >
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="h-12 w-12 overflow-hidden rounded-xl border border-[#E5EAF2] bg-[#F8FAFD] flex items-center justify-center">
-                              {item.imageUrl ? (
-                                <img
-                                  src={item.imageUrl}
-                                  alt={item.name}
-                                  className="h-full w-full object-cover"
-                                  onError={(e) => {
-                                    const target = e.currentTarget;
-                                    target.style.display = "none";
-                                  }}
-                                />
-                              ) : (
-                                <span className="text-xs text-[#94A3B8]">Ürün</span>
-                              )}
-                            </div>
-                            <div className="font-medium text-[#0F172A]">
-                              {item.name}
-                            </div>
-                          </div>
+                        <td className="px-6 py-4 font-medium text-[#0F172A]">
+                          {item.name}
                         </td>
                         <td className="px-6 py-4 text-[#657488]">{item.sku}</td>
                         <td className="px-6 py-4 text-[#657488]">{item.market}</td>

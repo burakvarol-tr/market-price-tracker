@@ -20,6 +20,14 @@ function buildMarketReportUrl(market: string) {
   return `${baseUrl}/report?market=${encodeURIComponent(market)}`;
 }
 
+function buildDetailUrl(sku: string) {
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    "https://market-price-tracker-gold.vercel.app";
+
+  return `${baseUrl}/report/detail?sku=${encodeURIComponent(sku)}`;
+}
+
 export async function sendPriceChangeEmailByMarket(
   market: string,
   items: PriceRecord[],
@@ -47,54 +55,73 @@ export async function sendPriceChangeEmailByMarket(
   });
 
   const rows = items
-    .map(
-      (item) => `
+    .map((item) => {
+      const changeColor =
+        (item.changePercent ?? 0) > 0
+          ? "#059669"
+          : (item.changePercent ?? 0) < 0
+          ? "#DC2626"
+          : "#475569";
+
+      return `
         <tr>
-          <td style="padding:14px 12px;border:1px solid #E5E7EB;">${item.name}</td>
-          <td style="padding:14px 12px;border:1px solid #E5E7EB;">${item.sku}</td>
-          <td style="padding:14px 12px;border:1px solid #E5E7EB;">${formatPrice(item.previousPrice)}</td>
-          <td style="padding:14px 12px;border:1px solid #E5E7EB;font-weight:700;color:#0F172A;">${formatPrice(item.currentPrice)}</td>
-          <td style="padding:14px 12px;border:1px solid #E5E7EB;font-weight:700;color:${
-            (item.changePercent ?? 0) > 0 ? "#059669" : (item.changePercent ?? 0) < 0 ? "#DC2626" : "#475569"
-          };">${formatPercent(item.changePercent)}</td>
-          <td style="padding:14px 12px;border:1px solid #E5E7EB;">${item.inStock ? "Var" : "Yok"}</td>
+          <td style="padding:16px 14px;border-bottom:1px solid #E2E8F0;vertical-align:top;">
+            <div style="font-size:16px;color:#0F172A;font-weight:500;">
+              ${item.name}
+            </div>
+            <div style="font-size:13px;color:#64748B;margin-top:6px;">
+              SKU: ${item.sku}
+            </div>
+          </td>
+
+          <td style="padding:16px 14px;border-bottom:1px solid #E2E8F0;vertical-align:top;font-size:16px;color:#0F172A;">
+            ${formatPrice(item.previousPrice)} → ${formatPrice(item.currentPrice)}
+          </td>
+
+          <td style="padding:16px 14px;border-bottom:1px solid #E2E8F0;vertical-align:top;font-size:16px;font-weight:700;color:${changeColor};">
+            ${formatPercent(item.changePercent)}
+          </td>
+
+          <td style="padding:16px 14px;border-bottom:1px solid #E2E8F0;vertical-align:top;">
+            <a href="${buildDetailUrl(item.sku)}" style="color:#7C3AED;text-decoration:none;font-size:16px;font-weight:700;">
+              Detayı Aç
+            </a>
+          </td>
         </tr>
-      `
-    )
+      `;
+    })
     .join("");
 
-  const firstDetailUrl =
-    items.length > 0
-      ? `${
-          process.env.NEXT_PUBLIC_APP_URL ||
-          "https://market-price-tracker-gold.vercel.app"
-        }/report/detail?sku=${encodeURIComponent(items[0].sku)}`
-      : "";
-
   const html = `
-    <div style="margin:0;padding:0;background:#F8FAFC;font-family:Arial,Helvetica,sans-serif;color:#0F172A;">
-      <div style="max-width:1000px;margin:0 auto;background:#FFFFFF;padding:28px 24px;">
-        <div style="font-size:13px;font-weight:700;letter-spacing:0.04em;color:#64748B;margin-bottom:10px;">
+    <div style="margin:0;padding:0;background:#FFFFFF;font-family:Arial,Helvetica,sans-serif;color:#0F172A;">
+      <div style="max-width:1700px;margin:0 auto;padding:10px 10px 24px;">
+        <div style="font-size:13px;font-weight:700;letter-spacing:0.02em;color:#64748B;margin-bottom:12px;">
           MARKET PRICE TRACKER
         </div>
 
-        <h1 style="margin:0 0 14px;font-size:24px;line-height:1.3;color:#0F172A;">
+        <h1 style="margin:0 0 18px;font-size:32px;line-height:1.2;color:#0F172A;font-weight:700;">
           ${market} - Fiyat Değişimi
         </h1>
 
-        <p style="margin:0 0 22px;font-size:16px;line-height:1.6;color:#475569;">
-          Toplam <strong>${items.length}</strong> ürün için fiyat değişimi tespit edildi.
+        <p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#475569;">
+          ${items.length} üründe fiyat değişti.
         </p>
 
-        <table style="width:100%;border-collapse:collapse;background:#FFFFFF;margin-bottom:18px;">
+        <table style="width:100%;border-collapse:collapse;background:#FFFFFF;margin-bottom:26px;">
           <thead>
             <tr style="background:#F1F5F9;text-align:left;">
-              <th style="padding:14px 12px;border:1px solid #E5E7EB;">Ürün</th>
-              <th style="padding:14px 12px;border:1px solid #E5E7EB;">SKU</th>
-              <th style="padding:14px 12px;border:1px solid #E5E7EB;">Eski Fiyat</th>
-              <th style="padding:14px 12px;border:1px solid #E5E7EB;">Yeni Fiyat</th>
-              <th style="padding:14px 12px;border:1px solid #E5E7EB;">Değişim</th>
-              <th style="padding:14px 12px;border:1px solid #E5E7EB;">Stok</th>
+              <th style="padding:14px;border-bottom:1px solid #CBD5E1;font-size:16px;color:#64748B;">
+                Ürün
+              </th>
+              <th style="padding:14px;border-bottom:1px solid #CBD5E1;font-size:16px;color:#64748B;">
+                Fiyat
+              </th>
+              <th style="padding:14px;border-bottom:1px solid #CBD5E1;font-size:16px;color:#64748B;">
+                Değişim
+              </th>
+              <th style="padding:14px;border-bottom:1px solid #CBD5E1;font-size:16px;color:#64748B;">
+                Detay
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -102,25 +129,13 @@ export async function sendPriceChangeEmailByMarket(
           </tbody>
         </table>
 
-        ${
-          firstDetailUrl
-            ? `
-          <div style="margin:14px 0 10px;">
-            <a href="${firstDetailUrl}" style="color:#7C3AED;text-decoration:none;font-size:14px;font-weight:700;">
-              Detayı Aç
-            </a>
-          </div>
-        `
-            : ""
-        }
-
-        <div style="margin:22px 0 0;">
-          <a href="${finalReportUrl}" style="color:#1E3A8A;text-decoration:none;font-size:16px;font-weight:700;">
+        <div style="margin:0 0 22px;">
+          <a href="${finalReportUrl}" style="color:#1E3A8A;text-decoration:none;font-size:18px;font-weight:700;">
             Raporu Aç
           </a>
         </div>
 
-        <p style="margin:24px 0 0;font-size:13px;line-height:1.6;color:#64748B;">
+        <p style="margin:0;font-size:13px;line-height:1.6;color:#64748B;">
           Bu bildirim Market Price Tracker sistemi tarafından otomatik oluşturulmuştur.
           Rapor bağlantısı üzerinden güncel ekranı istediğiniz zaman tekrar açabilirsiniz.
         </p>
@@ -130,7 +145,15 @@ export async function sendPriceChangeEmailByMarket(
 
   try {
     const info = await transporter.sendMail({
-      from: `"Market Price Tracker" <${user}>`,
+      from: {
+        name: "Market Price Tracker",
+        address: user,
+      },
+      sender: {
+        name: "Market Price Tracker",
+        address: user,
+      },
+      replyTo: user,
       to,
       subject: `${market} fiyat değişimi (${items.length} ürün)`,
       html,

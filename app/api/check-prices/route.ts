@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getProductsByMarket, type TrackedProduct } from "@/lib/getPrice";
 import {
-  createChangeEvent,
   readLatestPricesMap,
   saveCheckedProducts,
 } from "@/lib/firestorePrices";
@@ -82,15 +81,22 @@ const PRODUCTS: TrackedProduct[] = [
   },
 ];
 
-function getBaseUrl() {
-  return (
+function buildMarketReportUrl(market: string, skus: string[]) {
+  const baseUrl =
     process.env.NEXT_PUBLIC_APP_URL ||
-    "https://market-price-tracker-gold.vercel.app"
-  );
-}
+    "https://market-price-tracker-gold.vercel.app";
 
-function buildEventReportUrl(eventId: string) {
-  return `${getBaseUrl()}/report/event?eventId=${encodeURIComponent(eventId)}`;
+  const query = new URLSearchParams();
+
+  if (market) {
+    query.set("market", market);
+  }
+
+  if (skus.length > 0) {
+    query.set("changed", skus.join(","));
+  }
+
+  return `${baseUrl}/report?${query.toString()}`;
 }
 
 export async function GET() {
@@ -116,8 +122,10 @@ export async function GET() {
 
     const mailResults = await Promise.all(
       Object.entries(groupedByMarket).map(async ([market, items]) => {
-        const eventId = await createChangeEvent(market, items);
-        const reportUrl = buildEventReportUrl(eventId);
+        const reportUrl = buildMarketReportUrl(
+          market,
+          items.map((item) => item.sku)
+        );
 
         const result = await sendPriceChangeEmailByMarket(
           market,
@@ -128,7 +136,6 @@ export async function GET() {
         return {
           market,
           changedCount: items.length,
-          eventId,
           reportUrl,
           mailResult: result,
         };
@@ -142,6 +149,7 @@ export async function GET() {
           market: string;
           total: number;
           changedCount: number;
+          reportUrl: string;
         }
       >
     >((acc, item) => {
@@ -150,6 +158,7 @@ export async function GET() {
           market: item.market,
           total: 0,
           changedCount: 0,
+          reportUrl: buildMarketReportUrl(item.market, []),
         };
       }
 

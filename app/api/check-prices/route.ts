@@ -183,6 +183,7 @@ export async function GET() {
       changedProducts,
       markets: Object.values(summaryByMarket),
       mailResults,
+      liveProducts,
     });
   } catch (error) {
     console.error("check-prices error:", error);

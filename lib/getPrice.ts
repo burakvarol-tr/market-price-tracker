@@ -49,7 +49,12 @@ function pickImageUrl(rawProduct: any): string | null {
   return null;
 }
 
-function parseA101Price(rawProduct: any) {
+function parseA101Price(rawProduct: any): {
+  currentPrice: number | null;
+  priceText: string;
+  inStock: boolean;
+  imageUrl: string | null;
+} {
   const discounted = normalizeA101Number(rawProduct?.price?.discounted);
   const normal = normalizeA101Number(rawProduct?.price?.normal);
 
@@ -95,7 +100,14 @@ export async function getA101ProductBySku(
   const res = await fetch(url, {
     method: "GET",
     cache: "no-store",
+    headers: {
+      Accept: "application/json, text/plain, */*",
+    },
   });
+
+  if (!res.ok) {
+    throw new Error(`${product.sku} için fiyat alınamadı. Status: ${res.status}`);
+  }
 
   const data = await res.json();
   const rawProduct = data?.product || data?.data?.product || data;
@@ -111,43 +123,103 @@ export async function getA101ProductBySku(
   };
 }
 
-//////////////////////////////
-// WALMART ÇEKME
-//////////////////////////////
+function parseWalmartPriceFromHtml(html: string): number | null {
+  const patterns = [
+    /"price":\s*([0-9]+(?:\.[0-9]+)?)/,
+    /"currentPrice":\s*\{\s*"price":\s*([0-9]+(?:\.[0-9]+)?)/,
+    /"priceString":"\$?([0-9]+(?:\.[0-9]+)?)"/,
+    /"salePrice":"\$?([0-9]+(?:\.[0-9]+)?)"/,
+  ];
 
-export async function getWalmartProduct(
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (match) {
+      const value = Number(match[1]);
+      if (!Number.isNaN(value)) {
+        return Number(value.toFixed(2));
+      }
+    }
+  }
+
+  return null;
+}
+
+function parseWalmartImageFromHtml(html: string): string | null {
+  const patterns = [
+    /"image":"(https?:\/\/[^"]+)"/,
+    /"thumbnailUrl":"(https?:\/\/[^"]+)"/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (match?.[1]) {
+      return match[1].replace(/\\u002F/g, "/").replace(/\\/g, "");
+    }
+  }
+
+  return null;
+}
+
+async function getWalmartProductBySku(
   product: TrackedProduct
 ): Promise<LivePriceProduct> {
   const url = `https://www.walmart.com/ip/${product.sku}`;
 
-  const res = await fetch(url, {
-    method: "GET",
-    cache: "no-store",
-    headers: {
-      "User-Agent": "Mozilla/5.0",
-    },
-  });
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      cache: "no-store",
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+    });
 
-  const html = await res.text();
+    if (!res.ok) {
+      return {
+        ...product,
+        currentPrice: null,
+        priceText: "-",
+        inStock: false,
+        imageUrl: null,
+        raw: {
+          error: `Walmart HTTP ${res.status}`,
+        },
+      };
+    }
 
-  // fiyatı regex ile çek
-  const match = html.match(/"price":\s*([0-9.]+)/);
+    const html = await res.text();
 
-  const price = match ? Number(match[1]) : null;
+    const price = parseWalmartPriceFromHtml(html);
+    const imageUrl = parseWalmartImageFromHtml(html);
 
-  return {
-    ...product,
-    currentPrice: price,
-    priceText: price ? `$${price}` : "-",
-    inStock: true,
-    imageUrl: null,
-    raw: null,
-  };
+    return {
+      ...product,
+      currentPrice: price,
+      priceText: typeof price === "number" ? `$${price.toFixed(2)}` : "-",
+      inStock: price !== null,
+      imageUrl,
+      raw: {
+        source: "walmart_html",
+        priceFound: price !== null,
+      },
+    };
+  } catch (error) {
+    return {
+      ...product,
+      currentPrice: null,
+      priceText: "-",
+      inStock: false,
+      imageUrl: null,
+      raw: {
+        error: error instanceof Error ? error.message : String(error),
+      },
+    };
+  }
 }
-
-//////////////////////////////
-// ANA FONKSİYON
-//////////////////////////////
 
 export async function getProductsByMarket(
   products: TrackedProduct[]
@@ -159,7 +231,7 @@ export async function getProductsByMarket(
       }
 
       if (product.market === "WALMART") {
-        return getWalmartProduct(product);
+        return getWalmartProductBySku(product);
       }
 
       return {
@@ -185,7 +257,10 @@ export async function getProductsByMarket(
       inStock: false,
       imageUrl: null,
       raw: {
-        error: String(result.reason),
+        error:
+          result.reason instanceof Error
+            ? result.reason.message
+            : String(result.reason),
       },
     };
   });

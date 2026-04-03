@@ -79,6 +79,11 @@ const PRODUCTS: TrackedProduct[] = [
     name: "Üstad Organik %100 Portakal Suyu 1 L",
     market: "A101",
   },
+  {
+    sku: "10315766",
+    name: "Great Value Organic 100% Tart Cherry Juice 32 fl oz",
+    market: "WALMART",
+  },
 ];
 
 function buildMarketReportUrl(market: string, skus: string[]) {

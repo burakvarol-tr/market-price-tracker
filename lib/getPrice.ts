@@ -1,4 +1,4 @@
-export type MarketName = "A101" | "BIM" | "SOK" | "CARREFOUR";
+export type MarketName = "A101" | "BIM" | "SOK" | "CARREFOUR" | "WALMART";
 
 export type TrackedProduct = {
   sku: string;
@@ -49,12 +49,7 @@ function pickImageUrl(rawProduct: any): string | null {
   return null;
 }
 
-function parseA101Price(rawProduct: any): {
-  currentPrice: number | null;
-  priceText: string;
-  inStock: boolean;
-  imageUrl: string | null;
-} {
+function parseA101Price(rawProduct: any) {
   const discounted = normalizeA101Number(rawProduct?.price?.discounted);
   const normal = normalizeA101Number(rawProduct?.price?.normal);
 
@@ -100,14 +95,7 @@ export async function getA101ProductBySku(
   const res = await fetch(url, {
     method: "GET",
     cache: "no-store",
-    headers: {
-      Accept: "application/json, text/plain, */*",
-    },
   });
-
-  if (!res.ok) {
-    throw new Error(`${product.sku} için fiyat alınamadı. Status: ${res.status}`);
-  }
 
   const data = await res.json();
   const rawProduct = data?.product || data?.data?.product || data;
@@ -123,6 +111,44 @@ export async function getA101ProductBySku(
   };
 }
 
+//////////////////////////////
+// WALMART ÇEKME
+//////////////////////////////
+
+export async function getWalmartProduct(
+  product: TrackedProduct
+): Promise<LivePriceProduct> {
+  const url = `https://www.walmart.com/ip/${product.sku}`;
+
+  const res = await fetch(url, {
+    method: "GET",
+    cache: "no-store",
+    headers: {
+      "User-Agent": "Mozilla/5.0",
+    },
+  });
+
+  const html = await res.text();
+
+  // fiyatı regex ile çek
+  const match = html.match(/"price":\s*([0-9.]+)/);
+
+  const price = match ? Number(match[1]) : null;
+
+  return {
+    ...product,
+    currentPrice: price,
+    priceText: price ? `$${price}` : "-",
+    inStock: true,
+    imageUrl: null,
+    raw: null,
+  };
+}
+
+//////////////////////////////
+// ANA FONKSİYON
+//////////////////////////////
+
 export async function getProductsByMarket(
   products: TrackedProduct[]
 ): Promise<LivePriceProduct[]> {
@@ -130,6 +156,10 @@ export async function getProductsByMarket(
     products.map(async (product) => {
       if (product.market === "A101") {
         return getA101ProductBySku(product);
+      }
+
+      if (product.market === "WALMART") {
+        return getWalmartProduct(product);
       }
 
       return {
@@ -155,10 +185,7 @@ export async function getProductsByMarket(
       inStock: false,
       imageUrl: null,
       raw: {
-        error:
-          result.reason instanceof Error
-            ? result.reason.message
-            : String(result.reason),
+        error: String(result.reason),
       },
     };
   });

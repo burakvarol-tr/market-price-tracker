@@ -170,14 +170,13 @@ export async function saveCheckedProducts(
 
   for (const product of products) {
     const previous = previousMap[product.sku] || null;
-    const fallbackPreviousPrice =
-  previous?.previousPrice ??
-  (previous?.currentPrice !== currentPrice
-    ? previous?.currentPrice
-    : null);
 
-    const previousCurrentPrice = previous?.currentPrice ?? null;
-    const currentPrice = normalizePrice(product.currentPrice);
+const previousCurrentPrice = previous?.currentPrice ?? null;
+const currentPrice = normalizePrice(product.currentPrice);
+
+const fallbackPreviousPrice =
+  previous?.previousPrice ??
+  (previousCurrentPrice !== currentPrice ? previousCurrentPrice : null);
 
     const isFirstSave = !previous;
     const priceChanged =

@@ -38,9 +38,12 @@ function parseSokPriceFromHtml(html: string): {
   priceText: string;
 } {
   const pricePatterns = [
-    /([0-9]{1,4}(?:[.,][0-9]{2})?)\s*₺/,
-    /"price"\s*:\s*"?([0-9]+(?:[.,][0-9]+)?)"?/,
-  ];
+  /([0-9]+,[0-9]{2})\s*TL/i,
+  /([0-9]+,[0-9]{2})\s*₺/i,
+  /"price"\s*:\s*"([0-9.,]+)"/i,
+  /"salePrice"\s*:\s*"([0-9.,]+)"/i,
+  /"finalPrice"\s*:\s*"([0-9.,]+)"/i,
+];
 
   for (const pattern of pricePatterns) {
     const match = html.match(pattern);

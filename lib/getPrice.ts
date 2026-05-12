@@ -1,3 +1,4 @@
+import { getSokProductBySku } from "./getSokProducts";
 export type MarketName =
   | "A101"
   | "BIM"
@@ -280,6 +281,10 @@ export async function getProductsByMarket(
     products.map(async (product) => {
       if (product.market === "A101") {
         return getA101ProductBySku(product);
+      }
+
+      if (product.market === "SOK") {
+      return getSokProductBySku(product);
       }
 
       if (product.market === "WALMART") {

@@ -1,4 +1,11 @@
-export type MarketName = "A101" | "BIM" | "SOK" | "CARREFOUR" | "WALMART";
+export type MarketName =
+  | "A101"
+  | "BIM"
+  | "SOK"
+  | "CARREFOUR"
+  | "BIZIM"
+  | "FILE"
+  | "WALMART";
 
 export type TrackedProduct = {
   sku: string;

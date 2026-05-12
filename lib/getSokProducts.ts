@@ -8,8 +8,10 @@ const SOK_URLS: Record<string, string> = {
   "7209": "https://www.sokmarket.com.tr/mis-meyve-nektari-kayisi-1-l-p-7209",
   "8627": "https://www.sokmarket.com.tr/mis-meyve-nektari-visne-1-l-p-8627",
   "5811": "https://www.sokmarket.com.tr/mis-meyve-nektari-karisik-1-l-p-5811",
-  "267699": "https://www.sokmarket.com.tr/mis-portakalli-mandalinali-ananasli-icecek-200-ml-p-267699",
-  "269541": "https://www.sokmarket.com.tr/mis-elmali-cilek-ejder-meyve-havuclu-icecek-200-ml-p-269541",
+  "267699":
+    "https://www.sokmarket.com.tr/mis-portakalli-mandalinali-ananasli-icecek-200-ml-p-267699",
+  "269541":
+    "https://www.sokmarket.com.tr/mis-elmali-cilek-ejder-meyve-havuclu-icecek-200-ml-p-269541",
 };
 
 function parseTurkishPrice(value: string): number | null {
@@ -45,33 +47,36 @@ function parseSokPriceFromHtml(html: string): {
 } {
   const text = stripHtml(html);
 
-  const patterns = [
-    /([0-9]{1,4},[0-9]{2})\s*₺/g,
-    /([0-9]{1,4},[0-9]{2})\s*TL/gi,
-    /"price"\s*:\s*"?([0-9]{1,4}[.,][0-9]{1,2})"?/gi,
-    /"salePrice"\s*:\s*"?([0-9]{1,4}[.,][0-9]{1,2})"?/gi,
-    /"finalPrice"\s*:\s*"?([0-9]{1,4}[.,][0-9]{1,2})"?/gi,
-  ];
+  const productTitleMatch = text.match(
+    /Mis\s+[^0-9]{3,120}?(?:200\s*ml|1\s*L)/i
+  );
 
-  for (const pattern of patterns) {
-    const match = [...text.matchAll(pattern)][0] || [...html.matchAll(pattern)][0];
+  const titleIndex = productTitleMatch?.index ?? -1;
 
-    if (match?.[1]) {
-      const currentPrice = parseTurkishPrice(match[1]);
+  const searchArea =
+    titleIndex >= 0 ? text.slice(titleIndex, titleIndex + 500) : text;
 
-      return {
-        currentPrice,
-        priceText:
-          currentPrice !== null
-            ? `${currentPrice.toFixed(2).replace(".", ",")} TL`
-            : "-",
-      };
-    }
+  const priceMatch =
+    searchArea.match(/([0-9]{1,4},[0-9]{2})\s*₺/i) ||
+    searchArea.match(/([0-9]{1,4},[0-9]{2})\s*TL/i) ||
+    text.match(/([0-9]{1,4},[0-9]{2})\s*₺/i) ||
+    text.match(/([0-9]{1,4},[0-9]{2})\s*TL/i);
+
+  if (!priceMatch?.[1]) {
+    return {
+      currentPrice: null,
+      priceText: "-",
+    };
   }
 
+  const currentPrice = parseTurkishPrice(priceMatch[1]);
+
   return {
-    currentPrice: null,
-    priceText: "-",
+    currentPrice,
+    priceText:
+      currentPrice !== null
+        ? `${currentPrice.toFixed(2).replace(".", ",")} TL`
+        : "-",
   };
 }
 
@@ -81,7 +86,9 @@ function parseSokImageFromHtml(html: string): string | null {
   );
 
   if (productAssetMatch?.[0]) {
-    return productAssetMatch[0].replace(/\\u002F/g, "/").replace(/\\/g, "");
+    return productAssetMatch[0]
+      .replace(/\\u002F/g, "/")
+      .replace(/\\/g, "");
   }
 
   return null;
@@ -139,6 +146,7 @@ export async function getSokProductBySku(
     }
 
     const html = await res.text();
+
     const parsedPrice = parseSokPriceFromHtml(html);
     const imageUrl = parseSokImageFromHtml(html);
     const productCode = parseSokProductCodeFromHtml(html);

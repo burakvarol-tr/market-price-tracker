@@ -170,6 +170,11 @@ export async function saveCheckedProducts(
 
   for (const product of products) {
     const previous = previousMap[product.sku] || null;
+    const fallbackPreviousPrice =
+  previous?.previousPrice ??
+  (previous?.currentPrice !== currentPrice
+    ? previous?.currentPrice
+    : null);
 
     const previousCurrentPrice = previous?.currentPrice ?? null;
     const currentPrice = normalizePrice(product.currentPrice);
@@ -190,17 +195,22 @@ export async function saveCheckedProducts(
   market: product.market,
   currentPrice,
   previousPrice:
-    previousCurrentPrice !== currentPrice
-      ? previousCurrentPrice
-      : previous?.previousPrice ?? null,
+  previousCurrentPrice !== currentPrice
+    ? previousCurrentPrice
+    : fallbackPreviousPrice,
   changed:
     previousCurrentPrice !== currentPrice
       ? true
       : previous?.changed ?? false,
   changePercent:
-    previousCurrentPrice !== currentPrice
-      ? calculateChangePercent(previousCurrentPrice, currentPrice)
-      : previous?.changePercent ?? null,
+  previousCurrentPrice !== currentPrice
+    ? calculateChangePercent(previousCurrentPrice, currentPrice)
+    : fallbackPreviousPrice !== null
+    ? calculateChangePercent(
+        fallbackPreviousPrice,
+        currentPrice
+      )
+    : null,
   inStock: product.inStock,
   updatedAt: nowIso,
   lastCheckedAt: nowIso,

@@ -209,7 +209,7 @@ export default async function HomePage() {
                           {formatPrice(item.currentPrice)}
                         </td>
                         <td className="px-6 py-4 text-[#657488]">
-                          {item.changed ? formatPrice(item.previousPrice) : "-"}
+                          {formatPrice(item.previousPrice)}
                         </td>
                         <td className="px-6 py-4">
                           <span
@@ -221,7 +221,7 @@ export default async function HomePage() {
                                 : "border border-slate-200 bg-slate-100 text-slate-600"
                             }`}
                           >
-                            {formatPercent(item.changePercent, item.changed)}
+                            {formatPercent(item.changePercent, item.previousPrice !== null)}
                           </span>
                         </td>
                         <td className="px-6 py-4">

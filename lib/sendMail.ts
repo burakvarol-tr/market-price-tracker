@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { PRICE_ALERT_RECIPIENTS } from "@/data/mailRecipients";
 import type { PriceRecord } from "./firestorePrices";
 
 function formatPrice(price: number | null) {
@@ -35,14 +36,14 @@ export async function sendPriceChangeEmailByMarket(
 ) {
   const user = process.env.MAIL_USER;
   const pass = process.env.MAIL_PASS;
-  const to = process.env.MAIL_TO;
+  const to = PRICE_ALERT_RECIPIENTS.join(",");
 
-  if (!user || !pass || !to) {
-    return {
-      success: false,
-      message: "MAIL_USER / MAIL_PASS / MAIL_TO eksik",
-    };
-  }
+if (!user || !pass || PRICE_ALERT_RECIPIENTS.length === 0) {
+  return {
+    success: false,
+    message: "MAIL_USER / MAIL_PASS / PRICE_ALERT_RECIPIENTS eksik",
+  };
+}
 
   const finalReportUrl = reportUrl || buildMarketReportUrl(market);
 

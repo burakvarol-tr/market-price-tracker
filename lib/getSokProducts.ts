@@ -37,6 +37,34 @@ function parseSokPriceFromHtml(html: string): {
   currentPrice: number | null;
   priceText: string;
 } {
+  const text = stripHtml(html);
+
+  const candidates = [
+    ...text.matchAll(/([0-9]{1,4},[0-9]{2})\s*₺/g),
+    ...text.matchAll(/([0-9]{1,4},[0-9]{2})\s*TL/gi),
+  ]
+    .map((match) => match[1])
+    .filter(Boolean);
+
+  const firstPrice = candidates[0];
+
+  if (!firstPrice) {
+    return {
+      currentPrice: null,
+      priceText: "-",
+    };
+  }
+
+  const currentPrice = parseTurkishPrice(firstPrice);
+
+  return {
+    currentPrice,
+    priceText:
+      currentPrice !== null
+        ? `${currentPrice.toFixed(2).replace(".", ",")} TL`
+        : "-",
+  };
+}
   const pricePatterns = [
   /([0-9]+,[0-9]{2})\s*TL/i,
   /([0-9]+,[0-9]{2})\s*₺/i,
@@ -65,6 +93,16 @@ function parseSokPriceFromHtml(html: string): {
 }
 
 function parseSokImageFromHtml(html: string): string | null {
+  const productAssetMatch = html.match(
+    /https:\/\/images\.ceptesok\.com[^"'\\\s<>]+product-assets[^"'\\\s<>]+/i
+  );
+
+  if (productAssetMatch?.[0]) {
+    return productAssetMatch[0].replace(/\\u002F/g, "/").replace(/\\/g, "");
+  }
+
+  return null;
+}
   const match =
     html.match(/https:\/\/images\.ceptesok\.com[^"'\\\s<>]+/i) ||
     html.match(/"image"\s*:\s*"([^"]+)"/i);

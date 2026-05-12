@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getProductsByMarket, type TrackedProduct } from "@/lib/getPrice";
+import { PRODUCTS } from "@/data/products";
+import { getProductsByMarket } from "@/lib/getPrice";
 import {
   readLatestPricesMap,
   saveCheckedProducts,
@@ -7,79 +8,6 @@ import {
 import { sendPriceChangeEmailByMarket } from "@/lib/sendMail";
 
 export const dynamic = "force-dynamic";
-
-const PRODUCTS: TrackedProduct[] = [
-  {
-    sku: "13002152",
-    name: "Dooy Sihirli Ejderha Meyveli İçecek 200 ml",
-    market: "A101",
-  },
-  {
-    sku: "13002151",
-    name: "Dooy Safari Meyveleri Meyveli İçecek 200 ml",
-    market: "A101",
-  },
-  {
-    sku: "13002601",
-    name: "Dooy Karpuz Çilek Meyveli İçecek 200 ml",
-    market: "A101",
-  },
-  {
-    sku: "13001966",
-    name: "Dooy Vişne Meyve Nektarı 200 ml",
-    market: "A101",
-  },
-  {
-    sku: "13001960",
-    name: "Dooy Şeftali Meyve Nektarı 200 ml",
-    market: "A101",
-  },
-  {
-    sku: "13001952",
-    name: "Dooy Karışık Meyve Nektarı 200 ml",
-    market: "A101",
-  },
-  {
-    sku: "13001955",
-    name: "Dooy Kayısı Meyve Nektarı 200 ml",
-    market: "A101",
-  },
-  {
-    sku: "13001964",
-    name: "Dooy Vişne Meyve Nektarı 1 L",
-    market: "A101",
-  },
-  {
-    sku: "13001953",
-    name: "Dooy Kayısı Meyve Nektarı 1 L",
-    market: "A101",
-  },
-  {
-    sku: "13001958",
-    name: "Dooy Şeftali Meyve Nektarı 1 L",
-    market: "A101",
-  },
-  {
-    sku: "13001667",
-    name: "Dooy Ananas Meyve Aromalı İçecek 1 L",
-    market: "A101",
-  },
-  {
-    sku: "13001951",
-    name: "Dooy Karışık Meyve Nektarı 1 L",
-    market: "A101",
-  },
-  {
-    sku: "13002505",
-    name: "Dooy Sarı Meyveli Meyve Suyu %100 6x200 ml",
-    market: "A101",
-  },
-  {
-    sku: "13002974",
-    name: "Üstad Organik %100 Portakal Suyu 1 L",
-    market: "A101",
-  },
-];
 
 function buildMarketReportUrl(market: string, skus: string[]) {
   const baseUrl =
@@ -109,16 +37,16 @@ export async function GET() {
       previousMap
     );
 
-    const groupedByMarket = changedProducts.reduce<Record<string, typeof changedProducts>>(
-      (acc, item) => {
-        if (!acc[item.market]) {
-          acc[item.market] = [];
-        }
-        acc[item.market].push(item);
-        return acc;
-      },
-      {}
-    );
+    const groupedByMarket = changedProducts.reduce<
+      Record<string, typeof changedProducts>
+    >((acc, item) => {
+      if (!acc[item.market]) {
+        acc[item.market] = [];
+      }
+
+      acc[item.market].push(item);
+      return acc;
+    }, {});
 
     const mailResults = await Promise.all(
       Object.entries(groupedByMarket).map(async ([market, items]) => {

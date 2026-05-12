@@ -14,11 +14,22 @@ function formatPercent(value: number | null, changed: boolean) {
   return `${sign}${value.toFixed(2)}%`;
 }
 
+function marketColor(market: string) {
+  if (market === "A101") return "bg-sky-500/15 text-sky-300 border-sky-400/20";
+  if (market === "SOK")
+    return "bg-yellow-500/15 text-yellow-300 border-yellow-400/20";
+  if (market === "BIZIM")
+    return "bg-orange-500/15 text-orange-300 border-orange-400/20";
+  return "bg-slate-500/15 text-slate-300 border-slate-400/20";
+}
+
 function getRowStyle(item: PriceRecord, changedSet: Set<string>) {
-  if (changedSet.has(item.sku)) return "bg-[#FFFBEF]";
-  if (item.changed && (item.changePercent ?? 0) > 0) return "bg-[#F8FCF9]";
-  if (item.changed && (item.changePercent ?? 0) < 0) return "bg-[#FFF8F8]";
-  return "bg-white";
+  if (changedSet.has(item.sku)) return "bg-emerald-500/[0.06]";
+  if (item.changed && (item.changePercent ?? 0) > 0)
+    return "bg-emerald-500/[0.04]";
+  if (item.changed && (item.changePercent ?? 0) < 0)
+    return "bg-rose-500/[0.04]";
+  return "";
 }
 
 export default async function ReportPage({
@@ -45,31 +56,34 @@ export default async function ReportPage({
   );
 
   const markets = Array.from(new Set(items.map((x) => x.market)));
-  const changedCount = items.filter((item) => item.changed).length;
+
+  const changedCount = items.filter(
+    (item) =>
+      item.previousPrice !== null && item.previousPrice !== item.currentPrice
+  ).length;
 
   return (
-    <main className="min-h-screen bg-[#F6F8FB] text-[#0F172A]">
+    <main className="min-h-screen bg-[#08111F] text-white">
       <div className="mx-auto max-w-7xl px-5 py-8 md:px-8 md:py-10">
-        <section className="relative mb-8 overflow-hidden rounded-[32px] border border-[#E8EDF5] bg-[linear-gradient(135deg,#FFFFFF_0%,#FAFCFF_55%,#F3F7FF_100%)] p-7 shadow-[0_18px_50px_rgba(15,23,42,0.05)] md:p-10">
-          <div className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full bg-[#DCEBFF] blur-3xl opacity-50" />
-          <div className="relative max-w-3xl">
-            <div className="mb-4 inline-flex rounded-full border border-[#D9E4F2] bg-white/85 px-4 py-1.5 text-[12px] font-semibold tracking-[0.08em] text-[#3B5B8F] backdrop-blur">
+        <section className="mb-8 overflow-hidden rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top_right,#1D4ED820,transparent_35%),linear-gradient(135deg,#101B2E_0%,#0B1424_100%)] p-7 shadow-2xl md:p-10">
+          <div className="max-w-4xl">
+            <div className="mb-5 inline-flex rounded-full border border-blue-400/20 bg-blue-500/10 px-4 py-1.5 text-xs font-semibold tracking-[0.12em] text-blue-200">
               REPORT
             </div>
 
-            <h1 className="text-3xl font-semibold tracking-[-0.03em] text-[#0F172A] md:text-5xl">
+            <h1 className="text-4xl font-semibold tracking-[-0.04em] md:text-6xl">
               {market ? `${market} fiyat raporu` : "Fiyat raporu"}
             </h1>
 
-            <p className="mt-4 max-w-2xl text-[16px] leading-8 text-[#5E6B7D] md:text-[17px]">
-              Seçili ürünlerin güncel fiyatlarını ve değişim durumlarını tek
-              ekranda takip et.
+            <p className="mt-4 max-w-2xl text-base leading-8 text-slate-300 md:text-lg">
+              Seçili ürünlerin güncel fiyatlarını, eski fiyatlarını ve değişim
+              durumlarını tek ekranda takip edin.
             </p>
 
             <div className="mt-7 flex flex-wrap gap-3">
               <Link
                 href="/"
-                className="rounded-full bg-[linear-gradient(135deg,#3563E9_0%,#2D5BDE_100%)] px-6 py-3.5 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(53,99,233,0.22)] transition duration-200 hover:-translate-y-[1px]"
+                className="rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-500"
               >
                 Ana sayfaya dön
               </Link>
@@ -77,7 +91,7 @@ export default async function ReportPage({
               {market && (
                 <Link
                   href="/report"
-                  className="rounded-full border border-[#DDE5F0] bg-white/90 px-5 py-3.5 text-sm font-medium text-[#5C6B7E]"
+                  className="rounded-full border border-white/10 bg-white/5 px-5 py-3 text-sm font-medium text-slate-300 transition hover:bg-white/10"
                 >
                   Tüm marketleri gör
                 </Link>
@@ -87,30 +101,30 @@ export default async function ReportPage({
         </section>
 
         <section className="mb-8 grid gap-4 md:grid-cols-4">
-          <div className="rounded-[26px] border border-[#E7ECF3] bg-white/95 p-6 shadow-[0_10px_30px_rgba(15,23,42,0.035)]">
-            <div className="text-sm font-medium text-[#738195]">Toplam Ürün</div>
-            <div className="mt-3 text-4xl font-semibold tracking-[-0.04em] text-[#0F172A]">
+          <div className="rounded-[26px] border border-white/10 bg-white/[0.04] p-6 shadow-xl shadow-black/10">
+            <div className="text-sm text-slate-400">Toplam Ürün</div>
+            <div className="mt-3 text-4xl font-semibold tracking-[-0.04em]">
               {items.length}
             </div>
           </div>
 
-          <div className="rounded-[26px] border border-[#E7ECF3] bg-white/95 p-6 shadow-[0_10px_30px_rgba(15,23,42,0.035)]">
-            <div className="text-sm font-medium text-[#738195]">Değişen</div>
-            <div className="mt-3 text-4xl font-semibold tracking-[-0.04em] text-[#0F172A]">
+          <div className="rounded-[26px] border border-white/10 bg-white/[0.04] p-6 shadow-xl shadow-black/10">
+            <div className="text-sm text-slate-400">Değişen</div>
+            <div className="mt-3 text-4xl font-semibold tracking-[-0.04em] text-emerald-300">
               {changedCount}
             </div>
           </div>
 
-          <div className="rounded-[26px] border border-[#E7ECF3] bg-white/95 p-6 shadow-[0_10px_30px_rgba(15,23,42,0.035)]">
-            <div className="text-sm font-medium text-[#738195]">Rapor</div>
-            <div className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-[#0F172A]">
+          <div className="rounded-[26px] border border-white/10 bg-white/[0.04] p-6 shadow-xl shadow-black/10">
+            <div className="text-sm text-slate-400">Rapor</div>
+            <div className="mt-3 text-2xl font-semibold tracking-[-0.03em]">
               Hazır
             </div>
           </div>
 
-          <div className="rounded-[26px] border border-[#E7ECF3] bg-white/95 p-6 shadow-[0_10px_30px_rgba(15,23,42,0.035)]">
-            <div className="text-sm font-medium text-[#738195]">Durum</div>
-            <div className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-[#0F172A]">
+          <div className="rounded-[26px] border border-white/10 bg-white/[0.04] p-6 shadow-xl shadow-black/10">
+            <div className="text-sm text-slate-400">Durum</div>
+            <div className="mt-3 text-2xl font-semibold tracking-[-0.03em]">
               Aktif
             </div>
           </div>
@@ -122,8 +136,8 @@ export default async function ReportPage({
               href="/report"
               className={`rounded-full border px-4 py-2.5 text-sm font-medium transition ${
                 !market
-                  ? "border-[#3563E9] bg-[#3563E9] text-white shadow-[0_8px_20px_rgba(53,99,233,0.18)]"
-                  : "border-[#DDE5F0] bg-white text-[#5C6B7E]"
+                  ? "border-blue-500 bg-blue-600 text-white shadow-lg shadow-blue-600/20"
+                  : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]"
               }`}
             >
               Tümü
@@ -135,8 +149,8 @@ export default async function ReportPage({
                 href={`/report?market=${encodeURIComponent(marketItem)}`}
                 className={`rounded-full border px-4 py-2.5 text-sm font-medium transition ${
                   market === marketItem
-                    ? "border-[#3563E9] bg-[#3563E9] text-white shadow-[0_8px_20px_rgba(53,99,233,0.18)]"
-                    : "border-[#DDE5F0] bg-white text-[#5C6B7E]"
+                    ? "border-blue-500 bg-blue-600 text-white shadow-lg shadow-blue-600/20"
+                    : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]"
                 }`}
               >
                 {marketItem}
@@ -147,82 +161,106 @@ export default async function ReportPage({
 
         <section>
           <div className="mb-5">
-            <h2 className="text-[30px] font-semibold tracking-[-0.03em] text-[#0F172A]">
+            <h2 className="text-2xl font-semibold tracking-[-0.03em]">
               Ürün Listesi
             </h2>
-            <p className="mt-1 text-[15px] text-[#6B788A]">
+            <p className="mt-1 text-sm text-slate-400">
               Güncel fiyatlar ve değişim görünümü
             </p>
           </div>
 
-          <div className="overflow-hidden rounded-[30px] border border-[#E7ECF3] bg-white shadow-[0_14px_36px_rgba(15,23,42,0.04)]">
+          <div className="overflow-hidden rounded-[30px] border border-white/10 bg-white/[0.04] shadow-2xl shadow-black/20">
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
-                <thead className="bg-[#F8FAFD] text-left text-[#5F7083]">
+                <thead className="bg-white/[0.04] text-left text-slate-400">
                   <tr>
-                    <th className="px-6 py-4 font-semibold">Ürün</th>
-                    <th className="px-6 py-4 font-semibold">SKU</th>
-                    <th className="px-6 py-4 font-semibold">Market</th>
-                    <th className="px-6 py-4 font-semibold">Eski Fiyat</th>
-                    <th className="px-6 py-4 font-semibold">Yeni Fiyat</th>
-                    <th className="px-6 py-4 font-semibold">Değişim</th>
-                    <th className="px-6 py-4 font-semibold">Stok</th>
-                    <th className="px-6 py-4 font-semibold">Detay</th>
+                    <th className="px-5 py-4 font-semibold">#</th>
+                    <th className="px-5 py-4 font-semibold">Ürün</th>
+                    <th className="px-5 py-4 font-semibold">SKU</th>
+                    <th className="px-5 py-4 font-semibold">Market</th>
+                    <th className="px-5 py-4 font-semibold">Eski Fiyat</th>
+                    <th className="px-5 py-4 font-semibold">Yeni Fiyat</th>
+                    <th className="px-5 py-4 font-semibold">Değişim</th>
+                    <th className="px-5 py-4 font-semibold">Stok</th>
+                    <th className="px-5 py-4 font-semibold">Detay</th>
                   </tr>
                 </thead>
+
                 <tbody>
                   {items.map((item, index) => {
-                    const changePositive = item.changed && (item.changePercent ?? 0) > 0;
-                    const changeNegative = item.changed && (item.changePercent ?? 0) < 0;
+                    const hasChange =
+                      item.previousPrice !== null &&
+                      item.previousPrice !== item.currentPrice;
+
+                    const changePositive =
+                      hasChange && (item.changePercent ?? 0) > 0;
+                    const changeNegative =
+                      hasChange && (item.changePercent ?? 0) < 0;
 
                     return (
                       <tr
                         key={item.sku}
-                        className={`border-t border-[#EFF3F7] transition hover:bg-[#FBFCFF] ${getRowStyle(
+                        className={`border-t border-white/10 transition hover:bg-white/[0.03] ${getRowStyle(
                           item,
                           changedSet
                         )}`}
                       >
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-[#DCE4F0] bg-[linear-gradient(135deg,#EEF4FF_0%,#F8FBFF_100%)] text-sm font-bold text-[#3B5B8F]">
-                              {index + 1}
-                            </div>
-                            <div className="font-medium text-[#0F172A]">
-                              {item.name}
-                            </div>
+                        <td className="px-5 py-4 text-slate-400">
+                          {index + 1}
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <div className="max-w-[360px] font-medium leading-6">
+                            {item.name}
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-[#657488]">{item.sku}</td>
-                        <td className="px-6 py-4 text-[#657488]">{item.market}</td>
-                        <td className="px-6 py-4 text-[#657488]">
-                          {item.changed ? formatPrice(item.previousPrice) : "-"}
+
+                        <td className="px-5 py-4 text-slate-400">
+                          {item.sku}
                         </td>
-                        <td className="px-6 py-4 font-semibold text-[#0F172A]">
+
+                        <td className="px-5 py-4">
+                          <span
+                            className={`rounded-full border px-3 py-1 text-xs font-semibold ${marketColor(
+                              item.market
+                            )}`}
+                          >
+                            {item.market}
+                          </span>
+                        </td>
+
+                        <td className="px-5 py-4 text-slate-400">
+                          {formatPrice(item.previousPrice)}
+                        </td>
+
+                        <td className="px-5 py-4 font-semibold">
                           {formatPrice(item.currentPrice)}
                         </td>
-                        <td className="px-6 py-4">
+
+                        <td className="px-5 py-4">
                           <span
                             className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                               changePositive
-                                ? "border border-emerald-100 bg-emerald-50 text-emerald-700"
+                                ? "bg-emerald-400/10 text-emerald-300"
                                 : changeNegative
-                                ? "border border-rose-100 bg-rose-50 text-rose-700"
-                                : "border border-slate-200 bg-slate-100 text-slate-600"
+                                ? "bg-rose-400/10 text-rose-300"
+                                : "bg-slate-400/10 text-slate-400"
                             }`}
                           >
-                            {formatPercent(item.changePercent, item.changed)}
+                            {formatPercent(item.changePercent, hasChange)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-[#657488]">
+
+                        <td className="px-5 py-4 text-slate-400">
                           {item.inStock ? "Var" : "Yok"}
                         </td>
-                        <td className="px-6 py-4">
+
+                        <td className="px-5 py-4">
                           <Link
                             href={`/report/detail?sku=${item.sku}`}
-                            className="font-medium text-[#3A67E8] transition hover:text-[#2D58D8]"
+                            className="font-semibold text-blue-300 hover:text-blue-200"
                           >
-                            Detayı aç
+                            Aç
                           </Link>
                         </td>
                       </tr>
@@ -232,8 +270,8 @@ export default async function ReportPage({
                   {!items.length && (
                     <tr>
                       <td
-                        colSpan={8}
-                        className="px-6 py-14 text-center text-[#8391A2]"
+                        colSpan={9}
+                        className="px-6 py-14 text-center text-slate-400"
                       >
                         Veri bulunamadı
                       </td>

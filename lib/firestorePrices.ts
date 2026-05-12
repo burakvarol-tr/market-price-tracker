@@ -185,22 +185,32 @@ export async function saveCheckedProducts(
     );
 
     const record: PriceRecord = {
-      sku: product.sku,
-      name: product.name,
-      market: product.market,
-      currentPrice,
-      previousPrice: priceChanged ? previousCurrentPrice : null,
-      changed: priceChanged,
-      changePercent: priceChanged
-        ? calculateChangePercent(previousCurrentPrice, currentPrice)
-        : null,
-      inStock: product.inStock,
-      updatedAt: nowIso,
-      lastCheckedAt: nowIso,
-      lastChangedAt: priceChanged ? nowIso : previous?.lastChangedAt ?? null,
-      source: product.market,
-      imageUrl: finalImageUrl,
-    };
+  sku: product.sku,
+  name: product.name,
+  market: product.market,
+  currentPrice,
+  previousPrice:
+    previousCurrentPrice !== currentPrice
+      ? previousCurrentPrice
+      : previous?.previousPrice ?? null,
+  changed:
+    previousCurrentPrice !== currentPrice
+      ? true
+      : previous?.changed ?? false,
+  changePercent:
+    previousCurrentPrice !== currentPrice
+      ? calculateChangePercent(previousCurrentPrice, currentPrice)
+      : previous?.changePercent ?? null,
+  inStock: product.inStock,
+  updatedAt: nowIso,
+  lastCheckedAt: nowIso,
+  lastChangedAt:
+    previousCurrentPrice !== currentPrice
+      ? nowIso
+      : previous?.lastChangedAt ?? null,
+  source: product.market,
+  imageUrl: finalImageUrl,
+};
 
     const latestRef = firestore.collection(COLLECTION_LATEST).doc(product.sku);
     batch.set(latestRef, record, { merge: true });

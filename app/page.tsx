@@ -21,54 +21,92 @@ function marketColor(market: string) {
   return "bg-slate-500/15 text-slate-300 border-slate-400/20";
 }
 
+function sortByMarket<T extends { market: string; name: string }>(items: T[]) {
+  const marketOrder = ["A101", "BIZIM", "SOK", "BIM", "CARREFOUR", "FILE"];
+
+  return [...items].sort((a, b) => {
+    const aIndex = marketOrder.indexOf(a.market);
+    const bIndex = marketOrder.indexOf(b.market);
+
+    const safeA = aIndex === -1 ? 999 : aIndex;
+    const safeB = bIndex === -1 ? 999 : bIndex;
+
+    if (safeA !== safeB) return safeA - safeB;
+
+    return a.name.localeCompare(b.name, "tr");
+  });
+}
+
 export default async function HomePage() {
   const items = await getLatestPrices();
+  const sortedItems = sortByMarket(items);
 
   const markets = Array.from(new Set(items.map((item) => item.market)));
 
-  const changedItems = items.filter(
-    (item) => item.previousPrice !== null && item.previousPrice !== item.currentPrice
+  const changedItems = sortByMarket(
+    items.filter(
+      (item) =>
+        item.previousPrice !== null && item.previousPrice !== item.currentPrice
+    )
   );
 
-  const marketSummaries = markets.map((market) => {
-    const marketItems = items.filter((item) => item.market === market);
-    const changedCount = marketItems.filter(
-      (item) => item.previousPrice !== null && item.previousPrice !== item.currentPrice
-    ).length;
+  const marketSummaries = markets
+    .map((market) => {
+      const marketItems = items.filter((item) => item.market === market);
+      const changedCount = marketItems.filter(
+        (item) =>
+          item.previousPrice !== null &&
+          item.previousPrice !== item.currentPrice
+      ).length;
 
-    return {
-      market,
-      total: marketItems.length,
-      changedCount,
-      lastUpdated:
-        marketItems.length > 0
-          ? marketItems.map((x) => new Date(x.updatedAt).getTime()).sort((a, b) => b - a)[0]
-          : null,
-    };
-  });
+      return {
+        market,
+        total: marketItems.length,
+        changedCount,
+        lastUpdated:
+          marketItems.length > 0
+            ? marketItems
+                .map((x) => new Date(x.updatedAt).getTime())
+                .sort((a, b) => b - a)[0]
+            : null,
+      };
+    })
+    .sort((a, b) => {
+      const order = ["A101", "BIZIM", "SOK", "BIM", "CARREFOUR", "FILE"];
+      const aIndex = order.indexOf(a.market);
+      const bIndex = order.indexOf(b.market);
+      return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
+    });
+
+  const lastUpdated = items.length
+    ? new Date(
+        Math.max(...items.map((x) => new Date(x.updatedAt).getTime()))
+      ).toLocaleString("tr-TR")
+    : "-";
 
   return (
     <main className="min-h-screen bg-[#08111F] text-white">
-      <div className="mx-auto max-w-7xl px-5 py-8 md:px-8 md:py-10">
-        <section className="mb-8 overflow-hidden rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top_right,#1D4ED820,transparent_35%),linear-gradient(135deg,#101B2E_0%,#0B1424_100%)] p-7 shadow-2xl md:p-10">
-          <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
+      <div className="mx-auto max-w-7xl px-4 py-6 md:px-8 md:py-10">
+        <section className="mb-6 overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top_right,#1D4ED820,transparent_35%),linear-gradient(135deg,#101B2E_0%,#0B1424_100%)] p-6 shadow-2xl md:mb-8 md:rounded-[32px] md:p-10">
+          <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
             <div>
-              <div className="mb-5 inline-flex rounded-full border border-blue-400/20 bg-blue-500/10 px-4 py-1.5 text-xs font-semibold tracking-[0.12em] text-blue-200">
+              <div className="mb-5 inline-flex rounded-full border border-blue-400/20 bg-blue-500/10 px-4 py-1.5 text-[11px] font-semibold tracking-[0.12em] text-blue-200 md:text-xs">
                 MARKET PRICE TRACKER
               </div>
 
-              <h1 className="text-4xl font-semibold tracking-[-0.04em] md:text-6xl">
+              <h1 className="text-3xl font-semibold tracking-[-0.04em] md:text-6xl">
                 Market Fiyat Takibi
               </h1>
 
-              <p className="mt-4 max-w-2xl text-base leading-8 text-slate-300 md:text-lg">
-                Seçili ürünlerin güncel fiyatlarını, fiyat değişimlerini ve market bazlı durumunu tek ekranda takip edin.
+              <p className="mt-4 max-w-2xl text-[15px] leading-7 text-slate-300 md:text-lg md:leading-8">
+                Seçili ürünlerin güncel fiyatlarını, fiyat değişimlerini ve
+                market bazlı durumunu tek ekranda takip edin.
               </p>
 
-              <div className="mt-7 flex flex-wrap gap-3">
+              <div className="mt-6 flex flex-wrap gap-3">
                 <Link
                   href="/report"
-                  className="rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-500"
+                  className="rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-500 md:px-6"
                 >
                   Tüm raporu aç
                 </Link>
@@ -79,20 +117,16 @@ export default async function HomePage() {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 text-sm text-slate-300">
+            <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 text-sm text-slate-300 md:min-w-[220px]">
               <div className="text-slate-400">Son güncelleme</div>
-              <div className="mt-1 text-lg font-semibold text-white">
-                {items.length
-                  ? new Date(
-                      Math.max(...items.map((x) => new Date(x.updatedAt).getTime()))
-                    ).toLocaleString("tr-TR")
-                  : "-"}
+              <div className="mt-1 text-base font-semibold text-white md:text-lg">
+                {lastUpdated}
               </div>
             </div>
           </div>
         </section>
 
-        <section className="mb-8 grid gap-4 md:grid-cols-4">
+        <section className="mb-6 grid gap-3 sm:grid-cols-2 md:mb-8 md:grid-cols-4 md:gap-4">
           {[
             ["Toplam Ürün", items.length],
             ["Fiyat Değişen", changedItems.length],
@@ -101,22 +135,24 @@ export default async function HomePage() {
           ].map(([label, value]) => (
             <div
               key={label}
-              className="rounded-[26px] border border-white/10 bg-white/[0.04] p-6 shadow-xl shadow-black/10"
+              className="rounded-[22px] border border-white/10 bg-white/[0.04] p-5 shadow-xl shadow-black/10 md:rounded-[26px] md:p-6"
             >
               <div className="text-sm text-slate-400">{label}</div>
-              <div className="mt-3 text-4xl font-semibold tracking-[-0.04em]">
+              <div className="mt-3 text-3xl font-semibold tracking-[-0.04em] md:text-4xl">
                 {value}
               </div>
             </div>
           ))}
         </section>
 
-        <section className="mb-8">
-          <div className="mb-5 flex items-end justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-semibold tracking-[-0.03em]">Marketler</h2>
-              <p className="mt-1 text-sm text-slate-400">Her market için ayrı rapor ekranına geçebilirsiniz.</p>
-            </div>
+        <section className="mb-6 md:mb-8">
+          <div className="mb-4 md:mb-5">
+            <h2 className="text-2xl font-semibold tracking-[-0.03em]">
+              Marketler
+            </h2>
+            <p className="mt-1 text-sm text-slate-400">
+              Her market için ayrı rapor ekranına geçebilirsiniz.
+            </p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">
@@ -124,23 +160,33 @@ export default async function HomePage() {
               <Link
                 key={summary.market}
                 href={`/report?market=${encodeURIComponent(summary.market)}`}
-                className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 transition hover:-translate-y-1 hover:bg-white/[0.06]"
+                className="rounded-[24px] border border-white/10 bg-white/[0.04] p-5 transition hover:-translate-y-1 hover:bg-white/[0.06] md:rounded-[28px] md:p-6"
               >
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="text-2xl font-semibold">{summary.market}</div>
-                    <div className="mt-1 text-sm text-slate-400">Market raporunu aç</div>
+                    <div className="text-2xl font-semibold">
+                      {summary.market}
+                    </div>
+                    <div className="mt-1 text-sm text-slate-400">
+                      Market raporunu aç
+                    </div>
                   </div>
 
-                  <div className={`rounded-full border px-3 py-1 text-xs font-semibold ${marketColor(summary.market)}`}>
+                  <div
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${marketColor(
+                      summary.market
+                    )}`}
+                  >
                     {summary.total} ürün
                   </div>
                 </div>
 
-                <div className="mt-6 grid grid-cols-2 gap-3">
+                <div className="mt-5 grid grid-cols-2 gap-3">
                   <div className="rounded-2xl border border-white/10 bg-black/15 p-4">
                     <div className="text-xs text-slate-400">Toplam</div>
-                    <div className="mt-2 text-2xl font-semibold">{summary.total}</div>
+                    <div className="mt-2 text-2xl font-semibold">
+                      {summary.total}
+                    </div>
                   </div>
 
                   <div className="rounded-2xl border border-white/10 bg-black/15 p-4">
@@ -153,7 +199,9 @@ export default async function HomePage() {
 
                 <div className="mt-5 text-xs text-slate-500">
                   Son güncelleme:{" "}
-                  {summary.lastUpdated ? new Date(summary.lastUpdated).toLocaleString("tr-TR") : "-"}
+                  {summary.lastUpdated
+                    ? new Date(summary.lastUpdated).toLocaleString("tr-TR")
+                    : "-"}
                 </div>
               </Link>
             ))}
@@ -161,10 +209,12 @@ export default async function HomePage() {
         </section>
 
         {changedItems.length > 0 && (
-          <section className="mb-8 rounded-[30px] border border-emerald-400/15 bg-emerald-500/[0.06] p-6">
-            <div className="mb-5">
+          <section className="mb-6 rounded-[26px] border border-emerald-400/15 bg-emerald-500/[0.06] p-5 md:mb-8 md:rounded-[30px] md:p-6">
+            <div className="mb-4 md:mb-5">
               <h2 className="text-xl font-semibold">Fiyatı Değişen Ürünler</h2>
-              <p className="mt-1 text-sm text-slate-400">Geçmiş fiyata göre değişim görünen ürünler.</p>
+              <p className="mt-1 text-sm text-slate-400">
+                Geçmiş fiyata göre değişim görünen ürünler.
+              </p>
             </div>
 
             <div className="grid gap-3 md:grid-cols-3">
@@ -174,11 +224,17 @@ export default async function HomePage() {
                   href={`/report/detail?sku=${item.sku}`}
                   className="rounded-2xl border border-white/10 bg-black/20 p-4 transition hover:bg-black/30"
                 >
-                  <div className="text-sm font-semibold leading-6">{item.name}</div>
-                  <div className="mt-3 flex items-center justify-between text-sm">
-                    <span className="text-slate-400">{formatPrice(item.previousPrice)}</span>
+                  <div className="text-sm font-semibold leading-6">
+                    {item.name}
+                  </div>
+                  <div className="mt-3 flex items-center justify-between gap-2 text-sm">
+                    <span className="text-slate-400">
+                      {formatPrice(item.previousPrice)}
+                    </span>
                     <span className="text-slate-500">→</span>
-                    <span className="font-semibold">{formatPrice(item.currentPrice)}</span>
+                    <span className="font-semibold">
+                      {formatPrice(item.currentPrice)}
+                    </span>
                     <span className="rounded-full bg-emerald-400/10 px-2 py-1 text-xs font-semibold text-emerald-300">
                       {formatPercent(item.changePercent)}
                     </span>
@@ -191,11 +247,87 @@ export default async function HomePage() {
 
         <section>
           <div className="mb-5">
-            <h2 className="text-2xl font-semibold tracking-[-0.03em]">Son Durum</h2>
-            <p className="mt-1 text-sm text-slate-400">Tüm ürünlerin güncel fiyat görünümü</p>
+            <h2 className="text-2xl font-semibold tracking-[-0.03em]">
+              Son Durum
+            </h2>
+            <p className="mt-1 text-sm text-slate-400">
+              Ürünler firma bazında sıralanmıştır.
+            </p>
           </div>
 
-          <div className="overflow-hidden rounded-[30px] border border-white/10 bg-white/[0.04] shadow-2xl shadow-black/20">
+          <div className="space-y-3 md:hidden">
+            {sortedItems.map((item, index) => {
+              const hasChange =
+                item.previousPrice !== null &&
+                item.previousPrice !== item.currentPrice;
+
+              return (
+                <Link
+                  key={item.sku}
+                  href={`/report/detail?sku=${item.sku}`}
+                  className="block rounded-[22px] border border-white/10 bg-white/[0.04] p-4"
+                >
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/20 text-xs text-slate-300">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold leading-6">
+                          {item.name}
+                        </div>
+                        <div className="mt-1 text-xs text-slate-500">
+                          SKU: {item.sku}
+                        </div>
+                      </div>
+                    </div>
+
+                    <span
+                      className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${marketColor(
+                        item.market
+                      )}`}
+                    >
+                      {item.market}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="rounded-2xl border border-white/10 bg-black/15 p-3">
+                      <div className="text-xs text-slate-500">Güncel Fiyat</div>
+                      <div className="mt-1 font-semibold">
+                        {formatPrice(item.currentPrice)}
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-white/10 bg-black/15 p-3">
+                      <div className="text-xs text-slate-500">Önceki Fiyat</div>
+                      <div className="mt-1 text-slate-300">
+                        {formatPrice(item.previousPrice)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between">
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                        hasChange
+                          ? "bg-emerald-400/10 text-emerald-300"
+                          : "bg-slate-400/10 text-slate-400"
+                      }`}
+                    >
+                      {hasChange ? formatPercent(item.changePercent) : "-"}
+                    </span>
+
+                    <span className="text-sm font-semibold text-blue-300">
+                      Detay aç
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+
+          <div className="hidden overflow-hidden rounded-[30px] border border-white/10 bg-white/[0.04] shadow-2xl shadow-black/20 md:block">
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead className="bg-white/[0.04] text-left text-slate-400">
@@ -212,24 +344,42 @@ export default async function HomePage() {
                 </thead>
 
                 <tbody>
-                  {items.map((item, index) => {
+                  {sortedItems.map((item, index) => {
                     const hasChange =
-                      item.previousPrice !== null && item.previousPrice !== item.currentPrice;
+                      item.previousPrice !== null &&
+                      item.previousPrice !== item.currentPrice;
 
                     return (
-                      <tr key={item.sku} className="border-t border-white/10 transition hover:bg-white/[0.03]">
-                        <td className="px-5 py-4 text-slate-400">{index + 1}</td>
-                        <td className="px-5 py-4">
-                          <div className="max-w-[340px] font-medium leading-6">{item.name}</div>
+                      <tr
+                        key={item.sku}
+                        className="border-t border-white/10 transition hover:bg-white/[0.03]"
+                      >
+                        <td className="px-5 py-4 text-slate-400">
+                          {index + 1}
                         </td>
-                        <td className="px-5 py-4 text-slate-400">{item.sku}</td>
                         <td className="px-5 py-4">
-                          <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${marketColor(item.market)}`}>
+                          <div className="max-w-[340px] font-medium leading-6">
+                            {item.name}
+                          </div>
+                        </td>
+                        <td className="px-5 py-4 text-slate-400">
+                          {item.sku}
+                        </td>
+                        <td className="px-5 py-4">
+                          <span
+                            className={`rounded-full border px-3 py-1 text-xs font-semibold ${marketColor(
+                              item.market
+                            )}`}
+                          >
                             {item.market}
                           </span>
                         </td>
-                        <td className="px-5 py-4 font-semibold">{formatPrice(item.currentPrice)}</td>
-                        <td className="px-5 py-4 text-slate-400">{formatPrice(item.previousPrice)}</td>
+                        <td className="px-5 py-4 font-semibold">
+                          {formatPrice(item.currentPrice)}
+                        </td>
+                        <td className="px-5 py-4 text-slate-400">
+                          {formatPrice(item.previousPrice)}
+                        </td>
                         <td className="px-5 py-4">
                           {hasChange ? (
                             <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-300">
@@ -253,9 +403,12 @@ export default async function HomePage() {
                     );
                   })}
 
-                  {!items.length && (
+                  {!sortedItems.length && (
                     <tr>
-                      <td colSpan={8} className="px-6 py-14 text-center text-slate-400">
+                      <td
+                        colSpan={8}
+                        className="px-6 py-14 text-center text-slate-400"
+                      >
                         Veri bulunamadı
                       </td>
                     </tr>

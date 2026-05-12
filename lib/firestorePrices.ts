@@ -343,7 +343,7 @@ export async function getLatestPrices(options?: {
 
   return items.sort((a, b) => a.name.localeCompare(b.name, "tr"));
 }
-}
+
 
 export async function getLatestPriceBySku(
   sku: string

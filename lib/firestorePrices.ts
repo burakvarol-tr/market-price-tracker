@@ -274,33 +274,75 @@ export async function getLatestPrices(options?: {
 
   const snap = await query.get();
 
-  const items = snap.docs.map((doc) => {
-    const data = doc.data();
-    const sku = String(data.sku ?? doc.id);
+  const items = await Promise.all(
+    snap.docs.map(async (doc) => {
+      const data = doc.data();
+      const sku = String(data.sku ?? doc.id);
 
-    return {
-      sku,
-      name: String(data.name ?? ""),
-      market: (data.market ?? "A101") as MarketName,
-      currentPrice: normalizePrice(data.currentPrice),
-      previousPrice: normalizePrice(data.previousPrice),
-      changed: Boolean(data.changed),
-      changePercent:
-        typeof data.changePercent === "number" ? data.changePercent : null,
-      inStock: Boolean(data.inStock),
-      updatedAt: String(data.updatedAt ?? data.lastCheckedAt ?? ""),
-      lastCheckedAt: String(data.lastCheckedAt ?? data.updatedAt ?? ""),
-      lastChangedAt:
-        typeof data.lastChangedAt === "string" ? data.lastChangedAt : null,
-      source: String(data.source ?? data.market ?? ""),
-      imageUrl: resolveImageUrl(
+      const currentPrice = normalizePrice(data.currentPrice);
+      let previousPrice = normalizePrice(data.previousPrice);
+      let changePercent =
+        typeof data.changePercent === "number" ? data.changePercent : null;
+
+      if (previousPrice === null) {
+        const historySnap = await firestore
+          .collection(COLLECTION_HISTORY)
+          .where("sku", "==", sku)
+          .get();
+
+        const historyItems = historySnap.docs
+          .map((historyDoc) => {
+            const historyData = historyDoc.data();
+
+            return {
+              price: normalizePrice(historyData.price),
+              previousPrice: normalizePrice(historyData.previousPrice),
+              checkedAt: String(historyData.checkedAt ?? ""),
+            };
+          })
+          .sort(
+            (a, b) =>
+              new Date(b.checkedAt).getTime() -
+              new Date(a.checkedAt).getTime()
+          );
+
+        const latestChange = historyItems.find(
+          (history) =>
+            history.previousPrice !== null &&
+            history.price !== null &&
+            history.price === currentPrice
+        );
+
+        if (latestChange) {
+          previousPrice = latestChange.previousPrice;
+          changePercent = calculateChangePercent(previousPrice, currentPrice);
+        }
+      }
+
+      return {
         sku,
-        typeof data.imageUrl === "string" ? data.imageUrl : null
-      ),
-    } as PriceRecord;
-  });
+        name: String(data.name ?? ""),
+        market: (data.market ?? "A101") as MarketName,
+        currentPrice,
+        previousPrice,
+        changed: previousPrice !== null && previousPrice !== currentPrice,
+        changePercent,
+        inStock: Boolean(data.inStock),
+        updatedAt: String(data.updatedAt ?? data.lastCheckedAt ?? ""),
+        lastCheckedAt: String(data.lastCheckedAt ?? data.updatedAt ?? ""),
+        lastChangedAt:
+          typeof data.lastChangedAt === "string" ? data.lastChangedAt : null,
+        source: String(data.source ?? data.market ?? ""),
+        imageUrl: resolveImageUrl(
+          sku,
+          typeof data.imageUrl === "string" ? data.imageUrl : null
+        ),
+      } as PriceRecord;
+    })
+  );
 
   return items.sort((a, b) => a.name.localeCompare(b.name, "tr"));
+}
 }
 
 export async function getLatestPriceBySku(

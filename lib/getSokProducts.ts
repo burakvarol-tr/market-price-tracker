@@ -16,6 +16,7 @@ function parseTurkishPrice(value: string): number | null {
   const cleaned = value
     .replace(/\s/g, "")
     .replace("₺", "")
+    .replace("TL", "")
     .replace(/\./g, "")
     .replace(",", ".");
 
@@ -28,7 +29,12 @@ function parseTurkishPrice(value: string): number | null {
 
 function stripHtml(value: string): string {
   return value
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
     .replace(/<[^>]*>/g, " ")
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/g, "'")
+    .replace(/&amp;/g, "&")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -39,49 +45,26 @@ function parseSokPriceFromHtml(html: string): {
 } {
   const text = stripHtml(html);
 
-  const candidates = [
-    ...text.matchAll(/([0-9]{1,4},[0-9]{2})\s*₺/g),
-    ...text.matchAll(/([0-9]{1,4},[0-9]{2})\s*TL/gi),
-  ]
-    .map((match) => match[1])
-    .filter(Boolean);
+  const patterns = [
+    /([0-9]{1,4},[0-9]{2})\s*₺/g,
+    /([0-9]{1,4},[0-9]{2})\s*TL/gi,
+    /"price"\s*:\s*"?([0-9]{1,4}[.,][0-9]{1,2})"?/gi,
+    /"salePrice"\s*:\s*"?([0-9]{1,4}[.,][0-9]{1,2})"?/gi,
+    /"finalPrice"\s*:\s*"?([0-9]{1,4}[.,][0-9]{1,2})"?/gi,
+  ];
 
-  const firstPrice = candidates[0];
-
-  if (!firstPrice) {
-    return {
-      currentPrice: null,
-      priceText: "-",
-    };
-  }
-
-  const currentPrice = parseTurkishPrice(firstPrice);
-
-  return {
-    currentPrice,
-    priceText:
-      currentPrice !== null
-        ? `${currentPrice.toFixed(2).replace(".", ",")} TL`
-        : "-",
-  };
-}
-  const pricePatterns = [
-  /([0-9]+,[0-9]{2})\s*TL/i,
-  /([0-9]+,[0-9]{2})\s*₺/i,
-  /"price"\s*:\s*"([0-9.,]+)"/i,
-  /"salePrice"\s*:\s*"([0-9.,]+)"/i,
-  /"finalPrice"\s*:\s*"([0-9.,]+)"/i,
-];
-
-  for (const pattern of pricePatterns) {
-    const match = html.match(pattern);
+  for (const pattern of patterns) {
+    const match = [...text.matchAll(pattern)][0] || [...html.matchAll(pattern)][0];
 
     if (match?.[1]) {
       const currentPrice = parseTurkishPrice(match[1]);
 
       return {
         currentPrice,
-        priceText: currentPrice !== null ? `₺${currentPrice.toFixed(2).replace(".", ",")}` : "-",
+        priceText:
+          currentPrice !== null
+            ? `${currentPrice.toFixed(2).replace(".", ",")} TL`
+            : "-",
       };
     }
   }
@@ -102,16 +85,6 @@ function parseSokImageFromHtml(html: string): string | null {
   }
 
   return null;
-}
-  const match =
-    html.match(/https:\/\/images\.ceptesok\.com[^"'\\\s<>]+/i) ||
-    html.match(/"image"\s*:\s*"([^"]+)"/i);
-
-  if (!match?.[0] && !match?.[1]) return null;
-
-  const imageUrl = match[1] || match[0];
-
-  return imageUrl.replace(/\\u002F/g, "/").replace(/\\/g, "");
 }
 
 function parseSokProductCodeFromHtml(html: string): string | null {

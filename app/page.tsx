@@ -273,7 +273,7 @@ export default async function HomePage() {
           </div>
 
           <div className="min-w-0">
-            <div className="truncate text-[13px] font-semibold text-white">
+            <div className="line-clamp-2 text-[13px] font-semibold leading-5 text-white">
               {item.name}
             </div>
 

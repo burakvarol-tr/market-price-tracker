@@ -23,6 +23,22 @@ function marketColor(market: string) {
   return "bg-slate-500/15 text-slate-300 border-slate-400/20";
 }
 
+function sortByMarket<T extends { market: string; name: string }>(items: T[]) {
+  const marketOrder = ["A101", "BIZIM", "SOK", "BIM", "CARREFOUR", "FILE"];
+
+  return [...items].sort((a, b) => {
+    const aIndex = marketOrder.indexOf(a.market);
+    const bIndex = marketOrder.indexOf(b.market);
+
+    const safeA = aIndex === -1 ? 999 : aIndex;
+    const safeB = bIndex === -1 ? 999 : bIndex;
+
+    if (safeA !== safeB) return safeA - safeB;
+
+    return a.name.localeCompare(b.name, "tr");
+  });
+}
+
 function getRowStyle(item: PriceRecord, changedSet: Set<string>) {
   if (changedSet.has(item.sku)) return "bg-emerald-500/[0.06]";
   if (item.changed && (item.changePercent ?? 0) > 0)
@@ -44,9 +60,10 @@ export default async function ReportPage({
   const market = resolved?.market || "";
   const changed = resolved?.changed || "";
 
-  const items = await getLatestPrices({
-    market: market || undefined,
-  });
+  const allItems = sortByMarket(await getLatestPrices());
+  const items = market
+    ? allItems.filter((item) => item.market === market)
+    : allItems;
 
   const changedSet = new Set(
     changed
@@ -55,7 +72,7 @@ export default async function ReportPage({
       .filter(Boolean)
   );
 
-  const markets = Array.from(new Set(items.map((x) => x.market)));
+  const markets = Array.from(new Set(allItems.map((x) => x.market)));
 
   const changedCount = items.filter(
     (item) =>
@@ -64,26 +81,26 @@ export default async function ReportPage({
 
   return (
     <main className="min-h-screen bg-[#08111F] text-white">
-      <div className="mx-auto max-w-7xl px-5 py-8 md:px-8 md:py-10">
-        <section className="mb-8 overflow-hidden rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top_right,#1D4ED820,transparent_35%),linear-gradient(135deg,#101B2E_0%,#0B1424_100%)] p-7 shadow-2xl md:p-10">
+      <div className="mx-auto max-w-7xl px-4 py-6 md:px-8 md:py-10">
+        <section className="mb-6 overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top_right,#1D4ED820,transparent_35%),linear-gradient(135deg,#101B2E_0%,#0B1424_100%)] p-6 shadow-2xl md:mb-8 md:rounded-[32px] md:p-10">
           <div className="max-w-4xl">
-            <div className="mb-5 inline-flex rounded-full border border-blue-400/20 bg-blue-500/10 px-4 py-1.5 text-xs font-semibold tracking-[0.12em] text-blue-200">
+            <div className="mb-5 inline-flex rounded-full border border-blue-400/20 bg-blue-500/10 px-4 py-1.5 text-[11px] font-semibold tracking-[0.12em] text-blue-200 md:text-xs">
               REPORT
             </div>
 
-            <h1 className="text-4xl font-semibold tracking-[-0.04em] md:text-6xl">
+            <h1 className="text-3xl font-semibold tracking-[-0.04em] md:text-6xl">
               {market ? `${market} fiyat raporu` : "Fiyat raporu"}
             </h1>
 
-            <p className="mt-4 max-w-2xl text-base leading-8 text-slate-300 md:text-lg">
+            <p className="mt-4 max-w-2xl text-[15px] leading-7 text-slate-300 md:text-lg md:leading-8">
               Seçili ürünlerin güncel fiyatlarını, eski fiyatlarını ve değişim
               durumlarını tek ekranda takip edin.
             </p>
 
-            <div className="mt-7 flex flex-wrap gap-3">
+            <div className="mt-6 flex flex-wrap gap-3">
               <Link
                 href="/"
-                className="rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-500"
+                className="rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-500"
               >
                 Ana sayfaya dön
               </Link>
@@ -100,34 +117,23 @@ export default async function ReportPage({
           </div>
         </section>
 
-        <section className="mb-8 grid gap-4 md:grid-cols-4">
-          <div className="rounded-[26px] border border-white/10 bg-white/[0.04] p-6 shadow-xl shadow-black/10">
-            <div className="text-sm text-slate-400">Toplam Ürün</div>
-            <div className="mt-3 text-4xl font-semibold tracking-[-0.04em]">
-              {items.length}
+        <section className="mb-6 grid grid-cols-2 gap-3 md:mb-8 md:grid-cols-4 md:gap-4">
+          {[
+            ["Toplam Ürün", items.length],
+            ["Değişen", changedCount],
+            ["Market", market || "Tümü"],
+            ["Durum", "Aktif"],
+          ].map(([label, value]) => (
+            <div
+              key={label}
+              className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4 shadow-xl shadow-black/10 md:rounded-[26px] md:p-6"
+            >
+              <div className="text-xs text-slate-400 md:text-sm">{label}</div>
+              <div className="mt-2 text-2xl font-semibold tracking-[-0.04em] md:mt-3 md:text-4xl">
+                {value}
+              </div>
             </div>
-          </div>
-
-          <div className="rounded-[26px] border border-white/10 bg-white/[0.04] p-6 shadow-xl shadow-black/10">
-            <div className="text-sm text-slate-400">Değişen</div>
-            <div className="mt-3 text-4xl font-semibold tracking-[-0.04em] text-emerald-300">
-              {changedCount}
-            </div>
-          </div>
-
-          <div className="rounded-[26px] border border-white/10 bg-white/[0.04] p-6 shadow-xl shadow-black/10">
-            <div className="text-sm text-slate-400">Rapor</div>
-            <div className="mt-3 text-2xl font-semibold tracking-[-0.03em]">
-              Hazır
-            </div>
-          </div>
-
-          <div className="rounded-[26px] border border-white/10 bg-white/[0.04] p-6 shadow-xl shadow-black/10">
-            <div className="text-sm text-slate-400">Durum</div>
-            <div className="mt-3 text-2xl font-semibold tracking-[-0.03em]">
-              Aktif
-            </div>
-          </div>
+          ))}
         </section>
 
         <section className="mb-6">
@@ -169,7 +175,97 @@ export default async function ReportPage({
             </p>
           </div>
 
-          <div className="overflow-hidden rounded-[30px] border border-white/10 bg-white/[0.04] shadow-2xl shadow-black/20">
+          <div className="space-y-2 md:hidden">
+            {items.map((item, index) => {
+              const hasChange =
+                item.previousPrice !== null &&
+                item.previousPrice !== item.currentPrice;
+
+              const changePositive =
+                hasChange && (item.changePercent ?? 0) > 0;
+              const changeNegative =
+                hasChange && (item.changePercent ?? 0) < 0;
+
+              return (
+                <Link
+                  key={item.sku}
+                  href={`/report/detail?sku=${item.sku}`}
+                  className={`block rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3 transition active:scale-[0.99] ${getRowStyle(
+                    item,
+                    changedSet
+                  )}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/20 text-xs font-semibold text-slate-300">
+                        {index + 1}
+                      </div>
+
+                      <div className="min-w-0">
+                        <div className="line-clamp-2 text-[13px] font-semibold leading-5 text-white">
+                          {item.name}
+                        </div>
+
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                          <span>{item.sku}</span>
+
+                          <span
+                            className={`rounded-full border px-2 py-[2px] font-semibold ${marketColor(
+                              item.market
+                            )}`}
+                          >
+                            {item.market}
+                          </span>
+
+                          <span
+                            className={`rounded-full px-2 py-[2px] ${
+                              item.inStock
+                                ? "bg-emerald-400/10 text-emerald-300"
+                                : "bg-rose-400/10 text-rose-300"
+                            }`}
+                          >
+                            {item.inStock ? "Stokta" : "Stok yok"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="shrink-0 text-right">
+                      <div className="text-sm font-semibold text-white">
+                        {formatPrice(item.currentPrice)}
+                      </div>
+
+                      <div className="mt-1 text-[11px] text-slate-500">
+                        Eski: {formatPrice(item.previousPrice)}
+                      </div>
+
+                      <div className="mt-1 flex justify-end">
+                        <span
+                          className={`rounded-full px-2 py-[3px] text-[10px] font-semibold ${
+                            changePositive
+                              ? "bg-emerald-400/10 text-emerald-300"
+                              : changeNegative
+                              ? "bg-rose-400/10 text-rose-300"
+                              : "bg-slate-400/10 text-slate-400"
+                          }`}
+                        >
+                          {formatPercent(item.changePercent, hasChange)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+
+            {!items.length && (
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-10 text-center text-sm text-slate-400">
+                Veri bulunamadı
+              </div>
+            )}
+          </div>
+
+          <div className="hidden overflow-hidden rounded-[30px] border border-white/10 bg-white/[0.04] shadow-2xl shadow-black/20 md:block">
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead className="bg-white/[0.04] text-left text-slate-400">

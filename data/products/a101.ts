@@ -71,4 +71,59 @@ export const A101_PRODUCTS: TrackedProduct[] = [
     name: "Üstad Organik %100 Portakal Suyu 1 L",
     market: "A101",
   },
+  {
+  sku: "18002851",
+  name: "Galle Nar Ekşisi %100 250 ml",
+  market: "A101",
+},
+{
+  sku: "13002291",
+  name: "Dooy Çilekli Meyveli İçecek 1 L",
+  market: "A101",
+},
+{
+  sku: "13002275",
+  name: "Dooy Böğürtlen Meyveli İçecek 1 L",
+  market: "A101",
+},
+{
+  sku: "13003074",
+  name: "Togo Karışık Meyveli İçecek Elma Çilek Böğürtlen 1 L",
+  market: "A101",
+},
+{
+  sku: "13003075",
+  name: "Togo Karışık Meyveli İçecek Elma Muz Çilek 1 L",
+  market: "A101",
+},
+{
+  sku: "13003076",
+  name: "Togo Karışık Meyveli İçecek Karpuz Çilek Limon 1 L",
+  market: "A101",
+},
+{
+  sku: "13003004",
+  name: "Togo Limonata Karpuz Aromalı 200 ml",
+  market: "A101",
+},
+{
+  sku: "13003003",
+  name: "Togo Limonata Kavun Aromalı 200 ml",
+  market: "A101",
+},
+{
+  sku: "13003002",
+  name: "Togo Limonata Çilek Aromalı 200 ml",
+  market: "A101",
+},
+{
+  sku: "13003005",
+  name: "Togo Limonata Kivi Aromalı 200 ml",
+  market: "A101",
+},
+{
+  sku: "20001516",
+  name: "Ceviz File 500 g",
+  market: "A101",
+},
 ];

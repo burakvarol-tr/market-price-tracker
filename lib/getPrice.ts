@@ -1,5 +1,6 @@
 import { getBizimProductBySku } from "./getBizimProducts";
 import { getSokProductBySku } from "./getSokProducts";
+import { getCarrefourProductBySku } from "./getCarrefourProducts";
 export type MarketName =
   | "A101"
   | "BIM"
@@ -291,7 +292,11 @@ export async function getProductsByMarket(
       if (product.market === "BIZIM") {
       return getBizimProductBySku(product);
       }
-
+            
+        if (product.market === "CARREFOUR") {
+        return getCarrefourProductBySku(product);
+        }
+            
       if (product.market === "WALMART") {
         return getWalmartProductBySku(product);
       }

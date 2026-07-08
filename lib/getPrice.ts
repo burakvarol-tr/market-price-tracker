@@ -14,6 +14,8 @@ export type TrackedProduct = {
   sku: string;
   name: string;
   market: MarketName;
+  priceMode?: "UNIT" | "CASE";
+  unitsPerCase?: number;
 };
 
 export type LivePriceProduct = TrackedProduct & {

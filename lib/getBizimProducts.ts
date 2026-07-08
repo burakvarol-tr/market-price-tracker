@@ -59,35 +59,6 @@ function normalizeBizimPrice(
   return rawPrice;
 }
 
-function parseBizimStockFromHtml(html: string): boolean {
-  const text = stripHtml(html).toLocaleLowerCase("tr-TR");
-
-  const outOfStockSignals = [
-    "stoğa girince haber ver",
-    "stoga girince haber ver",
-    "stokta yok",
-    "tükendi",
-    "tukendi",
-  ];
-
-  if (outOfStockSignals.some((signal) => text.includes(signal))) {
-    return false;
-  }
-
-  const inStockSignals = [
-    "sepete ekle",
-    "koliyle alımda",
-    "adet fiyatı",
-    "adet fiyati",
-  ];
-
-  if (inStockSignals.some((signal) => text.includes(signal))) {
-    return true;
-  }
-
-  return false;
-}
-
 function parseBizimPriceFromHtml(
   html: string,
   product: TrackedProduct

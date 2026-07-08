@@ -197,6 +197,7 @@ export async function getBizimProductBySku(
     }
 
     const html = await res.text();
+    console.log(html);
     const parsedPrice = parseBizimPriceFromHtml(html, product);
     const imageUrl = parseBizimImageFromHtml(html);
     const inStock = parsedPrice.currentPrice !== null;

@@ -41,15 +41,8 @@ function stripHtml(value: string): string {
     .trim();
 }
 
-function isBizimOutOfStock(html: string): boolean {
-  const text = stripHtml(html).toLocaleLowerCase("tr-TR");
-
-  return (
-    text.includes("stoğa girince haber ver") ||
-    text.includes("stoga girince haber ver") ||
-    text.includes("stokta yok") ||
-    text.includes("tükendi")
-  );
+function normalizeText(value: string): string {
+  return value.toLocaleLowerCase("tr-TR").replace(/\s+/g, " ").trim();
 }
 
 function normalizeBizimPrice(
@@ -78,17 +71,16 @@ function parseBizimPriceFromHtml(
   priceText: string;
   rawPrice: number | null;
   normalized: boolean;
+  stockTextDetected: boolean;
 } {
-  if (isBizimOutOfStock(html)) {
-    return {
-      currentPrice: null,
-      priceText: "Stok Yok",
-      rawPrice: null,
-      normalized: false,
-    };
-  }
-
   const text = stripHtml(html);
+  const normalizedText = normalizeText(text);
+
+  const stockTextDetected =
+    normalizedText.includes("stoğa girince haber ver") ||
+    normalizedText.includes("stoga girince haber ver") ||
+    normalizedText.includes("stokta yok") ||
+    normalizedText.includes("tükendi");
 
   const adetFiyatiMatch =
     text.match(/Adet\s*Fiyatı\s*:\s*([0-9]{1,5},[0-9]{2})\s*TL/i) ||
@@ -103,6 +95,7 @@ function parseBizimPriceFromHtml(
       currentPrice,
       rawPrice,
       normalized: rawPrice !== currentPrice,
+      stockTextDetected,
       priceText:
         currentPrice !== null
           ? `${currentPrice.toFixed(2).replace(".", ",")} TL`
@@ -110,16 +103,17 @@ function parseBizimPriceFromHtml(
     };
   }
 
-  const genericMatch = text.match(/([0-9]{1,5},[0-9]{2})\s*TL/i);
+  const packagePriceMatch = text.match(/([0-9]{1,5},[0-9]{2})\s*TL/i);
 
-  if (genericMatch?.[1]) {
-    const rawPrice = parseTurkishPrice(genericMatch[1]);
+  if (packagePriceMatch?.[1]) {
+    const rawPrice = parseTurkishPrice(packagePriceMatch[1]);
     const currentPrice = normalizeBizimPrice(rawPrice, product);
 
     return {
       currentPrice,
       rawPrice,
       normalized: rawPrice !== currentPrice,
+      stockTextDetected,
       priceText:
         currentPrice !== null
           ? `${currentPrice.toFixed(2).replace(".", ",")} TL`
@@ -129,9 +123,10 @@ function parseBizimPriceFromHtml(
 
   return {
     currentPrice: null,
-    priceText: "-",
+    priceText: stockTextDetected ? "Stok Yok" : "-",
     rawPrice: null,
     normalized: false,
+    stockTextDetected,
   };
 }
 
@@ -197,7 +192,6 @@ export async function getBizimProductBySku(
     }
 
     const html = await res.text();
-    console.log(html);
     const parsedPrice = parseBizimPriceFromHtml(html, product);
     const imageUrl = parseBizimImageFromHtml(html);
     const inStock = parsedPrice.currentPrice !== null;
@@ -217,7 +211,7 @@ export async function getBizimProductBySku(
         priceMode: product.priceMode ?? null,
         unitsPerCase: product.unitsPerCase ?? null,
         stockDetected: inStock,
-        outOfStockDetected: isBizimOutOfStock(html),
+        stockTextDetected: parsedPrice.stockTextDetected,
       },
     };
   } catch (error) {

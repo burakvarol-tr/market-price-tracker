@@ -28,7 +28,11 @@ export type PriceHistoryRecord = {
   inStock: boolean;
   checkedAt: string;
   imageUrl?: string | null;
-  eventType?: "initial" | "price_changed" | "stock_changed" | "price_and_stock_changed";
+  eventType?:
+    | "initial"
+    | "price_changed"
+    | "stock_changed"
+    | "price_and_stock_changed";
 };
 
 export type ChangeEventItem = {
@@ -54,10 +58,13 @@ const COLLECTION_LATEST = "latest_prices";
 const COLLECTION_HISTORY = "price_history";
 const COLLECTION_CHANGE_EVENTS = "change_events";
 
+const MAX_REASONABLE_CHANGE_PERCENT = 300;
+
 function ensureDb() {
   if (!db) {
     throw new Error("Firestore bağlantısı yok. Env değerlerini kontrol et.");
   }
+
   return db;
 }
 
@@ -93,17 +100,18 @@ function calculateChangePercent(
   previousPrice: number | null,
   currentPrice: number | null
 ) {
-  if (
-    previousPrice === null ||
-    currentPrice === null ||
-    previousPrice === 0
-  ) {
+  if (previousPrice === null || currentPrice === null || previousPrice === 0) {
     return null;
   }
 
   return Number(
     (((currentPrice - previousPrice) / previousPrice) * 100).toFixed(2)
   );
+}
+
+function isSuspiciousPriceChange(changePercent: number | null) {
+  if (changePercent === null) return false;
+  return Math.abs(changePercent) > MAX_REASONABLE_CHANGE_PERCENT;
 }
 
 function resolveImageUrl(sku: string, incoming?: string | null) {
@@ -122,7 +130,9 @@ function buildHistoryEventType(priceChanged: boolean, stockChanged: boolean) {
   return "initial";
 }
 
-export async function readLatestPricesMap(): Promise<Record<string, PriceRecord>> {
+export async function readLatestPricesMap(): Promise<
+  Record<string, PriceRecord>
+> {
   const firestore = ensureDb();
   const snap = await firestore.collection(COLLECTION_LATEST).get();
 
@@ -171,16 +181,35 @@ export async function saveCheckedProducts(
   for (const product of products) {
     const previous = previousMap[product.sku] || null;
 
-const previousCurrentPrice = previous?.currentPrice ?? null;
-const currentPrice = normalizePrice(product.currentPrice);
+    const previousCurrentPrice = previous?.currentPrice ?? null;
+    const currentPrice = normalizePrice(product.currentPrice);
 
-const fallbackPreviousPrice =
-  previous?.previousPrice ??
-  (previousCurrentPrice !== currentPrice ? previousCurrentPrice : null);
+    const fallbackPreviousPrice =
+      previous?.previousPrice ??
+      (previousCurrentPrice !== currentPrice ? previousCurrentPrice : null);
 
     const isFirstSave = !previous;
+
     const priceChanged =
-      !isFirstSave && !isSamePrice(previousCurrentPrice, currentPrice);
+      !isFirstSave &&
+      currentPrice !== null &&
+      !isSamePrice(previousCurrentPrice, currentPrice);
+
+    const calculatedChangePercent = priceChanged
+      ? calculateChangePercent(previousCurrentPrice, currentPrice)
+      : fallbackPreviousPrice !== null
+      ? calculateChangePercent(fallbackPreviousPrice, currentPrice)
+      : null;
+
+    const suspiciousPriceChange =
+      priceChanged && isSuspiciousPriceChange(calculatedChangePercent);
+
+    const safePriceChanged = priceChanged && !suspiciousPriceChange;
+
+    const safeCurrentPrice = suspiciousPriceChange
+      ? previousCurrentPrice
+      : currentPrice;
+
     const stockChanged = !isFirstSave && previous.inStock !== product.inStock;
 
     const finalImageUrl = resolveImageUrl(
@@ -189,42 +218,33 @@ const fallbackPreviousPrice =
     );
 
     const record: PriceRecord = {
-  sku: product.sku,
-  name: product.name,
-  market: product.market,
-  currentPrice,
-  previousPrice:
-  previousCurrentPrice !== currentPrice
-    ? previousCurrentPrice
-    : fallbackPreviousPrice,
-  changed:
-    previousCurrentPrice !== currentPrice
-      ? true
-      : previous?.changed ?? false,
-  changePercent:
-  previousCurrentPrice !== currentPrice
-    ? calculateChangePercent(previousCurrentPrice, currentPrice)
-    : fallbackPreviousPrice !== null
-    ? calculateChangePercent(
-        fallbackPreviousPrice,
-        currentPrice
-      )
-    : null,
-  inStock: product.inStock,
-  updatedAt: nowIso,
-  lastCheckedAt: nowIso,
-  lastChangedAt:
-    previousCurrentPrice !== currentPrice
-      ? nowIso
-      : previous?.lastChangedAt ?? null,
-  source: product.market,
-  imageUrl: finalImageUrl,
-};
+      sku: product.sku,
+      name: product.name,
+      market: product.market,
+      currentPrice: safeCurrentPrice,
+      previousPrice: safePriceChanged
+        ? previousCurrentPrice
+        : fallbackPreviousPrice,
+      changed: safePriceChanged ? true : previous?.changed ?? false,
+      changePercent: safePriceChanged
+        ? calculatedChangePercent
+        : fallbackPreviousPrice !== null
+        ? calculateChangePercent(fallbackPreviousPrice, safeCurrentPrice)
+        : null,
+      inStock: product.inStock,
+      updatedAt: nowIso,
+      lastCheckedAt: nowIso,
+      lastChangedAt: safePriceChanged
+        ? nowIso
+        : previous?.lastChangedAt ?? null,
+      source: product.market,
+      imageUrl: finalImageUrl,
+    };
 
     const latestRef = firestore.collection(COLLECTION_LATEST).doc(product.sku);
     batch.set(latestRef, record, { merge: true });
 
-    const shouldWriteHistory = isFirstSave || priceChanged || stockChanged;
+    const shouldWriteHistory = isFirstSave || safePriceChanged || stockChanged;
 
     if (shouldWriteHistory) {
       const historyRef = firestore.collection(COLLECTION_HISTORY).doc();
@@ -233,15 +253,13 @@ const fallbackPreviousPrice =
         sku: product.sku,
         name: product.name,
         market: product.market,
-        price: currentPrice,
-        previousPrice: priceChanged ? previousCurrentPrice : null,
-        changePercent: priceChanged
-          ? calculateChangePercent(previousCurrentPrice, currentPrice)
-          : null,
+        price: safeCurrentPrice,
+        previousPrice: safePriceChanged ? previousCurrentPrice : null,
+        changePercent: safePriceChanged ? calculatedChangePercent : null,
         inStock: product.inStock,
         checkedAt: nowIso,
         imageUrl: finalImageUrl,
-        eventType: buildHistoryEventType(priceChanged, stockChanged),
+        eventType: buildHistoryEventType(safePriceChanged, stockChanged),
       };
 
       batch.set(historyRef, historyRecord);
@@ -249,7 +267,7 @@ const fallbackPreviousPrice =
 
     allSavedProducts.push(record);
 
-    if (priceChanged) {
+    if (safePriceChanged) {
       changedProducts.push(record);
     }
   }
@@ -343,7 +361,6 @@ export async function getLatestPrices(options?: {
 
   return items.sort((a, b) => a.name.localeCompare(b.name, "tr"));
 }
-
 
 export async function getLatestPriceBySku(
   sku: string

@@ -46,4 +46,14 @@ export const SOK_PRODUCTS: TrackedProduct[] = [
     name: "Mis Elmalı Çilek Ejder Meyve Havuçlu İçecek 200 ml",
     market: "SOK",
   },
+  {
+  sku: "00130771",
+  name: "Folife Smoothie Yeşil 250 ml",
+  market: "SOK",
+},
+{
+  sku: "00130770",
+  name: "Folife Smoothie Kırmızı 250 ml",
+  market: "SOK",
+},
 ];

@@ -41,9 +41,32 @@ function stripHtml(value: string): string {
     .trim();
 }
 
-function parseBizimPriceFromHtml(html: string): {
+function normalizeBizimPrice(
+  rawPrice: number | null,
+  product: TrackedProduct
+): number | null {
+  if (rawPrice === null) return null;
+
+  if (
+    product.priceMode === "UNIT" &&
+    product.unitsPerCase &&
+    product.unitsPerCase > 1 &&
+    rawPrice > 100
+  ) {
+    return Number((rawPrice / product.unitsPerCase).toFixed(2));
+  }
+
+  return rawPrice;
+}
+
+function parseBizimPriceFromHtml(
+  html: string,
+  product: TrackedProduct
+): {
   currentPrice: number | null;
   priceText: string;
+  rawPrice: number | null;
+  normalized: boolean;
 } {
   const text = stripHtml(html);
 
@@ -52,10 +75,13 @@ function parseBizimPriceFromHtml(html: string): {
     text.match(/Adet\s*:\s*([0-9]{1,5},[0-9]{2})\s*TL/i);
 
   if (adetFiyatiMatch?.[1]) {
-    const currentPrice = parseTurkishPrice(adetFiyatiMatch[1]);
+    const rawPrice = parseTurkishPrice(adetFiyatiMatch[1]);
+    const currentPrice = normalizeBizimPrice(rawPrice, product);
 
     return {
       currentPrice,
+      rawPrice,
+      normalized: rawPrice !== currentPrice,
       priceText:
         currentPrice !== null
           ? `${currentPrice.toFixed(2).replace(".", ",")} TL`
@@ -66,10 +92,13 @@ function parseBizimPriceFromHtml(html: string): {
   const genericMatch = text.match(/([0-9]{1,5},[0-9]{2})\s*TL/i);
 
   if (genericMatch?.[1]) {
-    const currentPrice = parseTurkishPrice(genericMatch[1]);
+    const rawPrice = parseTurkishPrice(genericMatch[1]);
+    const currentPrice = normalizeBizimPrice(rawPrice, product);
 
     return {
       currentPrice,
+      rawPrice,
+      normalized: rawPrice !== currentPrice,
       priceText:
         currentPrice !== null
           ? `${currentPrice.toFixed(2).replace(".", ",")} TL`
@@ -80,13 +109,19 @@ function parseBizimPriceFromHtml(html: string): {
   return {
     currentPrice: null,
     priceText: "-",
+    rawPrice: null,
+    normalized: false,
   };
 }
 
 function parseBizimImageFromHtml(html: string): string | null {
   const imageMatch =
-    html.match(/https:\/\/[^"'\\\s<>]+bizimtoptan[^"'\\\s<>]+\.(?:jpg|jpeg|png|webp)/i) ||
-    html.match(/https:\/\/img-bizimtoptan[^"'\\\s<>]+\.(?:jpg|jpeg|png|webp)/i) ||
+    html.match(
+      /https:\/\/[^"'\\\s<>]+bizimtoptan[^"'\\\s<>]+\.(?:jpg|jpeg|png|webp)/i
+    ) ||
+    html.match(
+      /https:\/\/img-bizimtoptan[^"'\\\s<>]+\.(?:jpg|jpeg|png|webp)/i
+    ) ||
     html.match(/"image"\s*:\s*"([^"]+)"/i);
 
   const imageUrl = imageMatch?.[1] || imageMatch?.[0];
@@ -141,7 +176,7 @@ export async function getBizimProductBySku(
     }
 
     const html = await res.text();
-    const parsedPrice = parseBizimPriceFromHtml(html);
+    const parsedPrice = parseBizimPriceFromHtml(html, product);
     const imageUrl = parseBizimImageFromHtml(html);
 
     return {
@@ -154,6 +189,10 @@ export async function getBizimProductBySku(
         source: "bizim_html",
         url,
         priceFound: parsedPrice.currentPrice !== null,
+        rawPrice: parsedPrice.rawPrice,
+        normalized: parsedPrice.normalized,
+        priceMode: product.priceMode ?? null,
+        unitsPerCase: product.unitsPerCase ?? null,
       },
     };
   } catch (error) {

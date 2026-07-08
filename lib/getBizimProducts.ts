@@ -59,6 +59,35 @@ function normalizeBizimPrice(
   return rawPrice;
 }
 
+function parseBizimStockFromHtml(html: string): boolean {
+  const text = stripHtml(html).toLocaleLowerCase("tr-TR");
+
+  const outOfStockSignals = [
+    "stoğa girince haber ver",
+    "stoga girince haber ver",
+    "stokta yok",
+    "tükendi",
+    "tukendi",
+  ];
+
+  if (outOfStockSignals.some((signal) => text.includes(signal))) {
+    return false;
+  }
+
+  const inStockSignals = [
+    "sepete ekle",
+    "koliyle alımda",
+    "adet fiyatı",
+    "adet fiyati",
+  ];
+
+  if (inStockSignals.some((signal) => text.includes(signal))) {
+    return true;
+  }
+
+  return false;
+}
+
 function parseBizimPriceFromHtml(
   html: string,
   product: TrackedProduct
@@ -72,6 +101,7 @@ function parseBizimPriceFromHtml(
 
   const adetFiyatiMatch =
     text.match(/Adet\s*Fiyatı\s*:\s*([0-9]{1,5},[0-9]{2})\s*TL/i) ||
+    text.match(/Adet\s*Fiyati\s*:\s*([0-9]{1,5},[0-9]{2})\s*TL/i) ||
     text.match(/Adet\s*:\s*([0-9]{1,5},[0-9]{2})\s*TL/i);
 
   if (adetFiyatiMatch?.[1]) {
@@ -178,12 +208,13 @@ export async function getBizimProductBySku(
     const html = await res.text();
     const parsedPrice = parseBizimPriceFromHtml(html, product);
     const imageUrl = parseBizimImageFromHtml(html);
+    const inStock = parseBizimStockFromHtml(html);
 
     return {
       ...product,
       currentPrice: parsedPrice.currentPrice,
       priceText: parsedPrice.priceText,
-      inStock: parsedPrice.currentPrice !== null,
+      inStock,
       imageUrl,
       raw: {
         source: "bizim_html",
@@ -193,6 +224,7 @@ export async function getBizimProductBySku(
         normalized: parsedPrice.normalized,
         priceMode: product.priceMode ?? null,
         unitsPerCase: product.unitsPerCase ?? null,
+        stockDetected: inStock,
       },
     };
   } catch (error) {

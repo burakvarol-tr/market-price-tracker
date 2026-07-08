@@ -47,12 +47,12 @@ export const SOK_PRODUCTS: TrackedProduct[] = [
     market: "SOK",
   },
   {
-  sku: "00130771",
+  sku: "4587",
   name: "Folife Smoothie Yeşil 250 ml",
   market: "SOK",
 },
 {
-  sku: "00130770",
+  sku: "4337",
   name: "Folife Smoothie Kırmızı 250 ml",
   market: "SOK",
 },

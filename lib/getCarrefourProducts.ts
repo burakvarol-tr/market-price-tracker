@@ -39,13 +39,15 @@ function parseCarrefourPriceFromHtml(html: string, productName: string) {
     .indexOf(productName.toLocaleLowerCase("tr-TR"));
 
   const searchArea =
-    titleIndex >= 0 ? text.slice(titleIndex, titleIndex + 500) : text;
+    titleIndex >= 0 ? text.slice(titleIndex, titleIndex + 250) : text;
 
-  const priceMatches = Array.from(
-    searchArea.matchAll(/([0-9]{1,4},[0-9]{2})\s*TL/gi)
-  );
+  const directMatch =
+    searchArea.match(/InStock\s+([0-9]{1,4},[0-9]{2})\s*TL/i) ||
+    text.match(/InStock\s+([0-9]{1,4},[0-9]{2})\s*TL/i) ||
+    searchArea.match(/([0-9]{1,4},[0-9]{2})\s*TL/i) ||
+    text.match(/([0-9]{1,4},[0-9]{2})\s*TL/i);
 
-  const firstPrice = priceMatches[0]?.[1] || null;
+  const firstPrice = directMatch?.[1] || null;
   const currentPrice = firstPrice ? parseTurkishPrice(firstPrice) : null;
 
   return {
@@ -60,8 +62,9 @@ function parseCarrefourPriceFromHtml(html: string, productName: string) {
 
 function parseCarrefourImageFromHtml(html: string): string | null {
   const imageMatch =
-    html.match(/https:\/\/[^"'\\\s<>]+carrefoursa[^"'\\\s<>]+\.(?:jpg|jpeg|png|webp)/i) ||
-    html.match(/https:\/\/[^"'\\\s<>]+\.(?:jpg|jpeg|png|webp)/i);
+    html.match(
+      /https:\/\/[^"'\\\s<>]+carrefoursa[^"'\\\s<>]+\.(?:jpg|jpeg|png|webp)/i
+    ) || html.match(/https:\/\/[^"'\\\s<>]+\.(?:jpg|jpeg|png|webp)/i);
 
   if (imageMatch?.[0]) {
     return imageMatch[0].replace(/\\u002F/g, "/").replace(/\\/g, "");

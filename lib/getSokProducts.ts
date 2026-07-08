@@ -12,6 +12,10 @@ const SOK_URLS: Record<string, string> = {
     "https://www.sokmarket.com.tr/mis-portakalli-mandalinali-ananasli-icecek-200-ml-p-267699",
   "269541":
     "https://www.sokmarket.com.tr/mis-elmali-cilek-ejder-meyve-havuclu-icecek-200-ml-p-269541",
+  "4587":
+    "https://www.sokmarket.com.tr/folife-smoothie-yesil-250-ml-p-4587",
+  "4337":
+    "https://www.sokmarket.com.tr/folife-smoothie-kirmizi-250-ml-p-4337",
 };
 
 function parseTurkishPrice(value: string): number | null {

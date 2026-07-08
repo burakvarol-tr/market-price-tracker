@@ -41,6 +41,17 @@ function stripHtml(value: string): string {
     .trim();
 }
 
+function isBizimOutOfStock(html: string): boolean {
+  const text = stripHtml(html).toLocaleLowerCase("tr-TR");
+
+  return (
+    text.includes("stoğa girince haber ver") ||
+    text.includes("stoga girince haber ver") ||
+    text.includes("stokta yok") ||
+    text.includes("tükendi")
+  );
+}
+
 function normalizeBizimPrice(
   rawPrice: number | null,
   product: TrackedProduct
@@ -68,6 +79,15 @@ function parseBizimPriceFromHtml(
   rawPrice: number | null;
   normalized: boolean;
 } {
+  if (isBizimOutOfStock(html)) {
+    return {
+      currentPrice: null,
+      priceText: "Stok Yok",
+      rawPrice: null,
+      normalized: false,
+    };
+  }
+
   const text = stripHtml(html);
 
   const adetFiyatiMatch =
@@ -196,6 +216,7 @@ export async function getBizimProductBySku(
         priceMode: product.priceMode ?? null,
         unitsPerCase: product.unitsPerCase ?? null,
         stockDetected: inStock,
+        outOfStockDetected: isBizimOutOfStock(html),
       },
     };
   } catch (error) {

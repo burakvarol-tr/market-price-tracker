@@ -1,8 +1,18 @@
 import type { LivePriceProduct, TrackedProduct } from "@/lib/getPrice";
 
 const CARREFOUR_URLS: Record<string, string> = {
+  "30509958":
+    "https://www.carrefoursa.com/bonheur-100-elma-suyu-1-l-p-30509958",
   "30510027":
     "https://www.carrefoursa.com/bonheur-100-elma-visne-1-l-p-30510027",
+  "30510076":
+    "https://www.carrefoursa.com/bonheur-100-seftali-elma-suyu-1-l-p-30510076",
+  "30510077":
+    "https://www.carrefoursa.com/bonheur-100-karisik-meyve-suyu-1-l-p-30510077",
+  "30511967":
+    "https://www.carrefoursa.com/bonheur-limonata-1-l-p-30511967",
+  "30512090":
+    "https://www.carrefoursa.com/bonheur-limonata-sekersiz-nane-aromali-1-l-p-30512090",
 };
 
 function parseTurkishPrice(value: string): number | null {

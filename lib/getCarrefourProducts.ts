@@ -15,72 +15,129 @@ const CARREFOUR_URLS: Record<string, string> = {
     "https://www.carrefoursa.com/bonheur-limonata-sekersiz-nane-aromali-1-l-p-30512090",
 };
 
-function parseTurkishPrice(value: string): number | null {
-  const cleaned = value
+type CarrefourSchemaProduct = {
+  "@type"?: string;
+  name?: string;
+  sku?: string | number;
+  image?: string | string[];
+  offers?: {
+    price?: number | string;
+    priceCurrency?: string;
+    availability?: string;
+    url?: string;
+  };
+};
+
+function parsePrice(value: unknown): number | null {
+  if (typeof value === "number" && !Number.isNaN(value)) {
+    return Number(value.toFixed(2));
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value
     .replace(/\s/g, "")
     .replace("₺", "")
     .replace("TL", "")
     .replace(/\./g, "")
     .replace(",", ".");
 
-  const parsed = Number(cleaned);
-  if (Number.isNaN(parsed)) return null;
+  const parsed = Number(normalized);
+
+  if (Number.isNaN(parsed)) {
+    return null;
+  }
 
   return Number(parsed.toFixed(2));
 }
 
-function stripHtml(value: string): string {
+function decodeHtmlEntities(value: string): string {
   return value
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<[^>]*>/g, " ")
     .replace(/&quot;/g, '"')
+    .replace(/&#34;/g, '"')
     .replace(/&#x27;/g, "'")
     .replace(/&amp;/g, "&")
-    .replace(/\s+/g, " ")
-    .trim();
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
 }
 
-function parseCarrefourPriceFromHtml(html: string, productName: string) {
-  const text = stripHtml(html);
+function extractProductSchema(
+  html: string,
+  expectedSku: string
+): CarrefourSchemaProduct | null {
+  const specificMatch = html.match(
+    /<script[^>]*id=["']productSchema["'][^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/i
+  );
 
-  const titleIndex = text
-    .toLocaleLowerCase("tr-TR")
-    .indexOf(productName.toLocaleLowerCase("tr-TR"));
+  const genericMatches = Array.from(
+    html.matchAll(
+      /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
+    )
+  );
 
-  const searchArea =
-    titleIndex >= 0 ? text.slice(titleIndex, titleIndex + 250) : text;
+  const candidates = specificMatch?.[1]
+    ? [specificMatch[1], ...genericMatches.map((match) => match[1])]
+    : genericMatches.map((match) => match[1]);
 
-  const directMatch =
-    searchArea.match(/InStock\s+([0-9]{1,4},[0-9]{2})\s*TL/i) ||
-    text.match(/InStock\s+([0-9]{1,4},[0-9]{2})\s*TL/i) ||
-    searchArea.match(/([0-9]{1,4},[0-9]{2})\s*TL/i) ||
-    text.match(/([0-9]{1,4},[0-9]{2})\s*TL/i);
+  for (const rawCandidate of candidates) {
+    try {
+      const decoded = decodeHtmlEntities(rawCandidate).trim();
+      const parsed = JSON.parse(decoded);
 
-  const firstPrice = directMatch?.[1] || null;
-  const currentPrice = firstPrice ? parseTurkishPrice(firstPrice) : null;
+      const items = Array.isArray(parsed)
+        ? parsed
+        : Array.isArray(parsed?.["@graph"])
+        ? parsed["@graph"]
+        : [parsed];
 
-  return {
-    currentPrice,
-    priceText:
-      currentPrice !== null
-        ? `${currentPrice.toFixed(2).replace(".", ",")} TL`
-        : "-",
-    inStock: /InStock/i.test(searchArea) || /InStock/i.test(text),
-  };
-}
+      for (const item of items) {
+        const type = String(item?.["@type"] ?? "").toLowerCase();
+        const sku = String(item?.sku ?? "");
 
-function parseCarrefourImageFromHtml(html: string): string | null {
-  const imageMatch =
-    html.match(
-      /https:\/\/[^"'\\\s<>]+carrefoursa[^"'\\\s<>]+\.(?:jpg|jpeg|png|webp)/i
-    ) || html.match(/https:\/\/[^"'\\\s<>]+\.(?:jpg|jpeg|png|webp)/i);
-
-  if (imageMatch?.[0]) {
-    return imageMatch[0].replace(/\\u002F/g, "/").replace(/\\/g, "");
+        if (type === "product" && sku === expectedSku) {
+          return item as CarrefourSchemaProduct;
+        }
+      }
+    } catch {
+      // Geçersiz JSON-LD bloklarını atla.
+    }
   }
 
   return null;
+}
+
+function getImageUrl(schema: CarrefourSchemaProduct): string | null {
+  const image = schema.image;
+
+  if (Array.isArray(image)) {
+    const firstValid = image.find(
+      (item) => typeof item === "string" && item.trim()
+    );
+
+    return firstValid?.trim() ?? null;
+  }
+
+  if (typeof image === "string" && image.trim()) {
+    return image.trim();
+  }
+
+  return null;
+}
+
+function isInStock(availability: unknown): boolean {
+  if (typeof availability !== "string") {
+    return false;
+  }
+
+  const normalized = availability.toLowerCase();
+
+  return (
+    normalized.endsWith("/instock") ||
+    normalized === "instock" ||
+    normalized.includes("in_stock")
+  );
 }
 
 export async function getCarrefourProductBySku(
@@ -107,7 +164,8 @@ export async function getCarrefourProductBySku(
       cache: "no-store",
       headers: {
         Accept:
-          "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+          "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language": "tr-TR,tr;q=0.9,en;q=0.8",
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
       },
@@ -128,19 +186,43 @@ export async function getCarrefourProductBySku(
     }
 
     const html = await res.text();
-    const parsedPrice = parseCarrefourPriceFromHtml(html, product.name);
-    const imageUrl = parseCarrefourImageFromHtml(html);
+    const schema = extractProductSchema(html, product.sku);
+
+    if (!schema) {
+      return {
+        ...product,
+        currentPrice: null,
+        priceText: "-",
+        inStock: false,
+        imageUrl: null,
+        raw: {
+          error: "Carrefour productSchema bulunamadı",
+          url,
+        },
+      };
+    }
+
+    const currentPrice = parsePrice(schema.offers?.price);
+    const inStock = isInStock(schema.offers?.availability);
+    const imageUrl = getImageUrl(schema);
 
     return {
       ...product,
-      currentPrice: parsedPrice.currentPrice,
-      priceText: parsedPrice.priceText,
-      inStock: parsedPrice.inStock && parsedPrice.currentPrice !== null,
+      currentPrice,
+      priceText:
+        currentPrice !== null
+          ? `${currentPrice.toFixed(2).replace(".", ",")} TL`
+          : "-",
+      inStock,
       imageUrl,
       raw: {
-        source: "carrefour_html",
+        source: "carrefour_json_ld",
         url,
-        priceFound: parsedPrice.currentPrice !== null,
+        schemaSku: String(schema.sku ?? ""),
+        schemaName: schema.name ?? null,
+        priceFound: currentPrice !== null,
+        availability: schema.offers?.availability ?? null,
+        priceCurrency: schema.offers?.priceCurrency ?? null,
       },
     };
   } catch (error) {

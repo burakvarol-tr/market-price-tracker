@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { getLatestPrices } from "@/lib/firestorePrices";
 import MarketLogo from "@/components/MarketLogo";
+import DashboardHeader from "@/components/DashboardHeader";
+import MetricCard from "@/components/MetricCard";
 
 export const dynamic = "force-dynamic";
 
@@ -31,11 +33,11 @@ function isChangedToday(item: { lastChangedAt?: string | null }) {
   return Boolean(item.lastChangedAt) && dateKeyInTurkey(item.lastChangedAt) === todayKey;
 }
 
-const accentBars: Record<string, string> = {
-  A101: "from-cyan-400 to-cyan-300",
-  SOK: "from-yellow-300 to-red-400",
-  BIZIM: "from-red-500 to-orange-400",
-  CARREFOUR: "from-blue-500 via-white to-red-500",
+const marketAccent: Record<string, string> = {
+  A101: "border-cyan-400/25 hover:border-cyan-300/45",
+  SOK: "border-yellow-300/25 hover:border-yellow-200/45",
+  BIZIM: "border-orange-400/25 hover:border-orange-300/45",
+  CARREFOUR: "border-blue-400/25 hover:border-blue-300/45",
 };
 
 export default async function HomePage() {
@@ -52,57 +54,55 @@ export default async function HomePage() {
       market,
       total: marketItems.length,
       changedToday,
-      lastUpdated: Math.max(...marketItems.map((item) => new Date(item.updatedAt).getTime())),
+      lastUpdated: Math.max(
+        ...marketItems.map((item) => new Date(item.updatedAt).getTime())
+      ),
     };
   });
 
   const lastUpdated = items.length
-    ? new Date(Math.max(...items.map((item) => new Date(item.updatedAt).getTime()))).toLocaleString("tr-TR")
+    ? new Date(
+        Math.max(...items.map((item) => new Date(item.updatedAt).getTime()))
+      ).toLocaleString("tr-TR")
     : "-";
 
   return (
-    <main className="min-h-screen bg-[#08111F] text-white">
-      <div className="mx-auto max-w-[1500px] px-4 py-4 md:px-6 md:py-5">
-        <section className="mb-4 rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_top_right,#1D4ED820,transparent_35%),linear-gradient(135deg,#101B2E_0%,#0B1424_100%)] px-5 py-4 shadow-xl">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="inline-flex rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1 text-[10px] font-semibold tracking-[0.12em] text-blue-200">
-                MARKET FİYAT TAKİBİ
-              </div>
-              <h1 className="mt-2 text-2xl font-semibold tracking-[-0.03em] md:text-3xl">Market Fiyat Takibi</h1>
-              <p className="mt-1 text-sm text-slate-400">Güncel fiyat değişimleri ve market durumunu tek ekranda izleyin.</p>
-            </div>
+    <main className="min-h-screen bg-[#07101D] text-white">
+      <div className="mx-auto max-w-[1540px] px-4 py-4 md:px-6 md:py-5">
+        <DashboardHeader
+          eyebrow="MARKET FİYAT TAKİBİ"
+          title="Market Fiyat Takibi"
+          description="Güncel fiyat değişimlerini, veri erişimini ve market performansını tek ekranda izleyin."
+          meta={`Son güncelleme · ${lastUpdated}`}
+          navItems={[
+            { href: "/report", label: "Fiyat raporu", tone: "primary" },
+            { href: "/report/analysis", label: "Analiz", tone: "success" },
+            { href: "/price-check", label: "Fiyat kontrolü", tone: "neutral" },
+          ]}
+        />
 
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-slate-400">
-                Son güncelleme: <span className="font-semibold text-white">{lastUpdated}</span>
-              </div>
-              <Link href="/report" className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold hover:bg-blue-500">Fiyat raporu</Link>
-              <Link href="/report/analysis" className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300">Analiz</Link>
-              <Link href="/price-check" className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">Fiyat kontrolü</Link>
-            </div>
-          </div>
+        <section className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+          <MetricCard label="Toplam ürün" value={items.length} />
+          <MetricCard
+            label="Bugün değişen"
+            value={todayChangedItems.length}
+            tone="positive"
+          />
+          <MetricCard
+            label="Okunamayan"
+            value={unreadableItems.length}
+            tone="warning"
+          />
+          <MetricCard label="Aktif market" value={markets.length} tone="info" />
         </section>
 
-        <section className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-          {[
-            ["Toplam ürün", items.length, "text-white"],
-            ["Bugün değişen", todayChangedItems.length, "text-emerald-300"],
-            ["Okunamayan", unreadableItems.length, "text-amber-300"],
-            ["Aktif market", markets.length, "text-blue-300"],
-          ].map(([label, value, color]) => (
-            <div key={String(label)} className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
-              <div className="text-xs text-slate-400">{label}</div>
-              <div className={`mt-1 text-2xl font-semibold ${color}`}>{value}</div>
-            </div>
-          ))}
-        </section>
-
-        <section className="mb-4">
-          <div className="mb-2 flex items-end justify-between">
+        <section className="mb-5">
+          <div className="mb-3 flex items-end justify-between">
             <div>
-              <h2 className="text-lg font-semibold">Marketler</h2>
-              <p className="text-xs text-slate-500">Detaylı rapor için market kartını açın.</p>
+              <h2 className="text-lg font-semibold tracking-[-0.02em]">Marketler</h2>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Market bazında güncel durum ve hızlı rapor erişimi
+              </p>
             </div>
             <span className="text-xs text-slate-500">{markets.length} market</span>
           </div>
@@ -112,50 +112,76 @@ export default async function HomePage() {
               <Link
                 key={summary.market}
                 href={`/report?market=${encodeURIComponent(summary.market)}`}
-                className="group relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.035] p-4 transition hover:-translate-y-0.5 hover:bg-white/[0.055]"
+                className={`group rounded-[18px] border bg-white/[0.028] p-4 shadow-[0_14px_34px_rgba(0,0,0,0.16)] transition duration-200 hover:-translate-y-0.5 hover:bg-white/[0.045] ${
+                  marketAccent[summary.market] ?? "border-white/10 hover:border-white/20"
+                }`}
               >
-                <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${accentBars[summary.market] ?? "from-slate-500 to-slate-300"}`} />
-
                 <div className="flex items-center justify-between gap-3">
                   <MarketLogo market={summary.market} />
-                  <span className="rounded-full border border-white/10 bg-black/15 px-2.5 py-1 text-xs text-slate-300">
+                  <span className="rounded-full border border-white/10 bg-black/10 px-2.5 py-1 text-xs text-slate-300">
                     {summary.total} ürün
                   </span>
                 </div>
 
-                <div className="mt-4 text-sm font-medium text-slate-200">
+                <div className="mt-5 text-sm font-semibold text-slate-100">
                   {summary.changedToday > 0
-                    ? `Bugün ${summary.changedToday} üründe fiyat değişti`
+                    ? `Bugün ${summary.changedToday} üründe değişiklik`
                     : "Bugün fiyat değişimi yok"}
                 </div>
-                <div className="mt-1 text-xs text-slate-500">Raporu aç →</div>
-                <div className="mt-3 text-[10px] text-slate-600">{new Date(summary.lastUpdated).toLocaleString("tr-TR")}</div>
+                <div className="mt-1 text-xs text-slate-500 transition group-hover:text-slate-300">
+                  Market raporunu aç →
+                </div>
+                <div className="mt-4 border-t border-white/[0.07] pt-3 text-[10px] text-slate-600">
+                  Son kontrol · {new Date(summary.lastUpdated).toLocaleString("tr-TR")}
+                </div>
               </Link>
             ))}
           </div>
         </section>
 
-        <section className="rounded-xl border border-white/10 bg-white/[0.04]">
-          <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-            <h2 className="font-semibold">Bugünkü fiyat hareketleri</h2>
-            <Link href="/report" className="text-xs font-medium text-blue-300 hover:text-blue-200">Tüm raporu gör</Link>
+        <section className="overflow-hidden rounded-[18px] border border-white/[0.085] bg-white/[0.03] shadow-[0_16px_40px_rgba(0,0,0,0.15)]">
+          <div className="flex items-center justify-between border-b border-white/[0.08] px-4 py-3.5">
+            <div>
+              <h2 className="font-semibold tracking-[-0.01em]">Bugünkü fiyat hareketleri</h2>
+              <p className="mt-0.5 text-[11px] text-slate-500">Yalnızca bugün kaydedilen değişiklikler</p>
+            </div>
+            <Link href="/report" className="text-xs font-medium text-blue-300 hover:text-blue-200">
+              Tüm raporu gör
+            </Link>
           </div>
 
           {todayChangedItems.length > 0 ? (
-            <div className="divide-y divide-white/10">
+            <div className="divide-y divide-white/[0.07]">
               {todayChangedItems.slice(0, 5).map((item) => (
-                <Link key={`${item.market}-${item.sku}`} href={`/report/detail?sku=${encodeURIComponent(item.sku)}`} className="grid grid-cols-[1fr_auto_auto] items-center gap-3 px-4 py-2.5 text-sm hover:bg-white/[0.03]">
+                <Link
+                  key={`${item.market}-${item.sku}`}
+                  href={`/report/detail?sku=${encodeURIComponent(item.sku)}`}
+                  className="grid grid-cols-[1fr_auto_auto] items-center gap-3 px-4 py-3 text-sm transition hover:bg-white/[0.025]"
+                >
                   <div className="min-w-0">
                     <div className="truncate font-medium">{item.name}</div>
-                    <div className="text-[10px] text-slate-500">{item.market} · {item.sku}</div>
+                    <div className="text-[10px] text-slate-500">
+                      {item.market} · {item.sku}
+                    </div>
                   </div>
-                  <div className="text-right text-xs text-slate-400">{formatPrice(item.previousPrice)} → <span className="font-semibold text-white">{formatPrice(item.currentPrice)}</span></div>
-                  <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${(item.changePercent ?? 0) >= 0 ? "bg-emerald-400/10 text-emerald-300" : "bg-rose-400/10 text-rose-300"}`}>{formatPercent(item.changePercent)}</span>
+                  <div className="text-right text-xs text-slate-400">
+                    {formatPrice(item.previousPrice)} →{" "}
+                    <span className="font-semibold text-white">{formatPrice(item.currentPrice)}</span>
+                  </div>
+                  <span
+                    className={`rounded-full px-2 py-1 text-[10px] font-semibold ${
+                      (item.changePercent ?? 0) >= 0
+                        ? "bg-emerald-400/10 text-emerald-300"
+                        : "bg-rose-400/10 text-rose-300"
+                    }`}
+                  >
+                    {formatPercent(item.changePercent)}
+                  </span>
                 </Link>
               ))}
             </div>
           ) : (
-            <div className="px-4 py-8 text-center text-sm text-slate-400">
+            <div className="px-4 py-10 text-center text-sm text-slate-400">
               Bugün kaydedilmiş yeni bir fiyat değişikliği yok.
             </div>
           )}

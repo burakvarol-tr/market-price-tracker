@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { PriceRecord } from "@/lib/firestorePrices";
+import { getProductCategory } from "@/lib/productCategory";
 import SafeProductImage from "./SafeProductImage";
 import MarketLogo from "./MarketLogo";
+import MiniSparkline from "./MiniSparkline";
 
 type SortKey = "market" | "name" | "price-asc" | "price-desc" | "change-desc" | "updated-desc";
 
@@ -12,6 +14,7 @@ type Props = {
   initialItems: PriceRecord[];
   initialMarket?: string;
   highlightedSkus?: string[];
+  priceHistoryMap?: Record<string, number[]>;
 };
 
 function formatPrice(price: number | null) {
@@ -68,9 +71,15 @@ function StockBadge({ item }: { item: PriceRecord }) {
   );
 }
 
-export default function ReportExplorer({ initialItems, initialMarket = "", highlightedSkus = [] }: Props) {
+export default function ReportExplorer({
+  initialItems,
+  initialMarket = "",
+  highlightedSkus = [],
+  priceHistoryMap = {},
+}: Props) {
   const [query, setQuery] = useState("");
   const [market, setMarket] = useState(initialMarket);
+  const [category, setCategory] = useState("");
   const [onlyChanged, setOnlyChanged] = useState(false);
   const [onlyOutOfStock, setOnlyOutOfStock] = useState(false);
   const [onlyUnreadable, setOnlyUnreadable] = useState(false);
@@ -79,12 +88,16 @@ export default function ReportExplorer({ initialItems, initialMarket = "", highl
 
   const highlightedSet = useMemo(() => new Set(highlightedSkus), [highlightedSkus]);
   const markets = useMemo(() => Array.from(new Set(initialItems.map((item) => item.market))), [initialItems]);
+  const categories = useMemo(
+    () => Array.from(new Set(initialItems.map((item) => getProductCategory(item.name)))).sort((a, b) => a.localeCompare(b, "tr")),
+    [initialItems]
+  );
 
   const items = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase("tr-TR");
     const filtered = initialItems.filter((item) => {
       const matchesQuery = !normalizedQuery || item.name.toLocaleLowerCase("tr-TR").includes(normalizedQuery) || item.sku.toLocaleLowerCase("tr-TR").includes(normalizedQuery);
-      return matchesQuery && (!market || item.market === market) && (!onlyChanged || isChangedToday(item)) && (!onlyOutOfStock || isOutOfStock(item)) && (!onlyUnreadable || isUnreadable(item)) && (!onlyWithoutImage || !item.imageUrl);
+      return matchesQuery && (!market || item.market === market) && (!category || getProductCategory(item.name) === category) && (!onlyChanged || isChangedToday(item)) && (!onlyOutOfStock || isOutOfStock(item)) && (!onlyUnreadable || isUnreadable(item)) && (!onlyWithoutImage || !item.imageUrl);
     });
 
     return [...filtered].sort((a, b) => {
@@ -96,7 +109,7 @@ export default function ReportExplorer({ initialItems, initialMarket = "", highl
       if (a.market !== b.market) return a.market.localeCompare(b.market, "tr");
       return a.name.localeCompare(b.name, "tr");
     });
-  }, [initialItems, market, onlyChanged, onlyOutOfStock, onlyUnreadable, onlyWithoutImage, query, sort]);
+  }, [initialItems, market, category, onlyChanged, onlyOutOfStock, onlyUnreadable, onlyWithoutImage, query, sort]);
 
   const changedCount = items.filter(isChangedToday).length;
   const outOfStockCount = items.filter(isOutOfStock).length;
@@ -129,7 +142,7 @@ export default function ReportExplorer({ initialItems, initialMarket = "", highl
       </section>
 
       <section className="mb-4 rounded-xl border border-white/[0.08] bg-[#0C1626] p-3 shadow-[0_18px_40px_rgba(0,0,0,0.16)]">
-        <div className="grid gap-2 lg:grid-cols-[1.5fr_0.72fr_0.82fr]">
+        <div className="grid gap-2 xl:grid-cols-[1.35fr_0.62fr_0.72fr_0.72fr]">
           <div className="relative">
             <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-600">⌕</span>
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ürün adı veya SKU ile ara" className="h-10 w-full rounded-lg border border-white/[0.08] bg-[#08111F] pl-9 pr-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/10" />
@@ -137,6 +150,10 @@ export default function ReportExplorer({ initialItems, initialMarket = "", highl
           <select value={market} onChange={(e) => setMarket(e.target.value)} className="h-10 rounded-lg border border-white/[0.08] bg-[#08111F] px-3 text-sm text-white outline-none focus:border-blue-400/40">
             <option value="">Tüm marketler</option>
             {markets.map((marketItem) => <option key={marketItem} value={marketItem}>{marketItem}</option>)}
+          </select>
+          <select value={category} onChange={(e) => setCategory(e.target.value)} className="h-10 rounded-lg border border-white/[0.08] bg-[#08111F] px-3 text-sm text-white outline-none focus:border-blue-400/40">
+            <option value="">Tüm kategoriler</option>
+            {categories.map((categoryItem) => <option key={categoryItem} value={categoryItem}>{categoryItem}</option>)}
           </select>
           <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} className="h-10 rounded-lg border border-white/[0.08] bg-[#08111F] px-3 text-sm text-white outline-none focus:border-blue-400/40">
             <option value="market">Markete göre</option>
@@ -149,7 +166,7 @@ export default function ReportExplorer({ initialItems, initialMarket = "", highl
         </div>
         <div className="mt-2 flex flex-wrap gap-2 border-t border-white/[0.06] pt-2">
           {filterButtons.map((filter) => (
-            <button key={filter.label} type="button" onClick={filter.toggle} className={`rounded-md border px-2.5 py-1.5 text-[11px] font-medium transition ${filter.active ? "border-blue-400/30 bg-blue-500/15 text-blue-200" : "border-white/[0.08] bg-white/[0.025] text-slate-400 hover:bg-white/[0.06] hover:text-slate-200"}`}>
+            <button key={filter.label} type="button" onClick={filter.toggle} className={`rounded-full border px-3 py-1.5 text-[11px] font-medium transition ${filter.active ? "border-blue-400/30 bg-blue-500/15 text-blue-200 shadow-[0_0_18px_rgba(59,130,246,0.08)]" : "border-white/[0.08] bg-white/[0.025] text-slate-400 hover:-translate-y-px hover:bg-white/[0.06] hover:text-slate-200"}`}>
               {filter.label}
             </button>
           ))}
@@ -160,7 +177,7 @@ export default function ReportExplorer({ initialItems, initialMarket = "", highl
         <div className="mb-2 flex items-center justify-between gap-4">
           <div>
             <h2 className="text-base font-semibold text-slate-100">Ürün listesi</h2>
-            <p className="text-[11px] text-slate-500">Güncel fiyat, son kayıt ve erişim durumu</p>
+            <p className="text-[11px] text-slate-500">Güncel fiyat, kategori, mini trend ve erişim durumu</p>
           </div>
           <div className="rounded-md border border-white/[0.07] bg-white/[0.025] px-2.5 py-1 text-[11px] text-slate-500">{items.length} kayıt</div>
         </div>
@@ -175,13 +192,13 @@ export default function ReportExplorer({ initialItems, initialMarket = "", highl
                     <SafeProductImage src={item.imageUrl} alt={item.name} className="h-12 w-12 rounded-lg" />
                     <div className="min-w-0">
                       <div className="line-clamp-2 text-[13px] font-semibold">{item.name}</div>
-                      <div className="mt-0.5 text-[10px] text-slate-500">SKU {item.sku}</div>
+                      <div className="mt-0.5 text-[10px] text-slate-500">SKU {item.sku} · {getProductCategory(item.name)}</div>
                       <div className="mt-1.5 flex gap-2"><MarketLogo market={item.market} compact /><StockBadge item={item} /></div>
                     </div>
                   </div>
                   <div className="shrink-0 text-right">
                     <div className="text-sm font-semibold">{formatPrice(item.currentPrice)}</div>
-                    <div className="mt-0.5 text-[10px] text-slate-500">{formatPrice(item.previousPrice)}</div>
+                    <MiniSparkline values={priceHistoryMap[item.sku] ?? []} />
                     <div className="mt-1 text-[10px] text-slate-400">{formatPercent(item.changePercent, hasChange)}</div>
                   </div>
                 </div>
@@ -198,6 +215,7 @@ export default function ReportExplorer({ initialItems, initialMarket = "", highl
                   <th className="w-12 px-3 py-2.5">#</th>
                   <th className="px-3 py-2.5">Ürün</th>
                   <th className="px-3 py-2.5">Market</th>
+                  <th className="px-3 py-2.5 text-center">Trend</th>
                   <th className="px-3 py-2.5 text-right">Önceki</th>
                   <th className="px-3 py-2.5 text-right">Güncel</th>
                   <th className="px-3 py-2.5 text-center">Değişim</th>
@@ -217,12 +235,13 @@ export default function ReportExplorer({ initialItems, initialMarket = "", highl
                         <div className="flex min-w-[300px] items-center gap-3">
                           <SafeProductImage src={item.imageUrl} alt={item.name} className="h-10 w-10 rounded-md" />
                           <div>
-                            <div className="max-w-[420px] font-medium leading-5 text-slate-100">{item.name}</div>
-                            <div className="text-[10px] text-slate-600">SKU {item.sku}</div>
+                            <div className="max-w-[390px] font-medium leading-5 text-slate-100">{item.name}</div>
+                            <div className="text-[10px] text-slate-600">SKU {item.sku} · {getProductCategory(item.name)}</div>
                           </div>
                         </div>
                       </td>
                       <td className="px-3 py-2"><MarketLogo market={item.market} compact /></td>
+                      <td className="px-3 py-2"><div className="flex justify-center"><MiniSparkline values={priceHistoryMap[item.sku] ?? []} /></div></td>
                       <td className="px-3 py-2 text-right tabular-nums text-slate-500">{formatPrice(item.previousPrice)}</td>
                       <td className="px-3 py-2 text-right font-semibold tabular-nums text-slate-100">{formatPrice(item.currentPrice)}</td>
                       <td className="px-3 py-2 text-center">

@@ -6,7 +6,13 @@ import type { PriceRecord } from "@/lib/firestorePrices";
 import SafeProductImage from "./SafeProductImage";
 import MarketLogo from "./MarketLogo";
 
-type SortKey = "market" | "name" | "price-asc" | "price-desc" | "change-desc" | "updated-desc";
+type SortKey =
+  | "market"
+  | "name"
+  | "price-asc"
+  | "price-desc"
+  | "change-desc"
+  | "updated-desc";
 
 type Props = {
   initialItems: PriceRecord[];
@@ -21,11 +27,14 @@ function formatPrice(price: number | null) {
 
 function formatPercent(value: number | null, changed: boolean) {
   if (!changed || value === null || Number.isNaN(value)) return "-";
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${value.toFixed(2)}%`;
+  return `${value > 0 ? "+" : ""}${value.toFixed(2)}%`;
 }
 
-function compareNullableNumber(a: number | null, b: number | null, direction: 1 | -1) {
+function compareNullableNumber(
+  a: number | null,
+  b: number | null,
+  direction: 1 | -1
+) {
   if (a === null && b === null) return 0;
   if (a === null) return 1;
   if (b === null) return -1;
@@ -44,7 +53,11 @@ export default function ReportExplorer({
   const [onlyWithoutImage, setOnlyWithoutImage] = useState(false);
   const [sort, setSort] = useState<SortKey>("market");
 
-  const highlightedSet = useMemo(() => new Set(highlightedSkus), [highlightedSkus]);
+  const highlightedSet = useMemo(
+    () => new Set(highlightedSkus),
+    [highlightedSkus]
+  );
+
   const markets = useMemo(
     () => Array.from(new Set(initialItems.map((item) => item.market))),
     [initialItems]
@@ -60,7 +73,8 @@ export default function ReportExplorer({
         item.sku.toLocaleLowerCase("tr-TR").includes(normalizedQuery);
 
       const hasChange =
-        item.previousPrice !== null && item.previousPrice !== item.currentPrice;
+        item.previousPrice !== null &&
+        item.previousPrice !== item.currentPrice;
 
       return (
         matchesQuery &&
@@ -73,23 +87,67 @@ export default function ReportExplorer({
 
     return [...filtered].sort((a, b) => {
       if (sort === "name") return a.name.localeCompare(b.name, "tr");
-      if (sort === "price-asc") return compareNullableNumber(a.currentPrice, b.currentPrice, 1);
-      if (sort === "price-desc") return compareNullableNumber(a.currentPrice, b.currentPrice, -1);
-      if (sort === "change-desc") return compareNullableNumber(a.changePercent, b.changePercent, -1);
+      if (sort === "price-asc") {
+        return compareNullableNumber(a.currentPrice, b.currentPrice, 1);
+      }
+      if (sort === "price-desc") {
+        return compareNullableNumber(a.currentPrice, b.currentPrice, -1);
+      }
+      if (sort === "change-desc") {
+        return compareNullableNumber(a.changePercent, b.changePercent, -1);
+      }
       if (sort === "updated-desc") {
-        return new Date(b.lastCheckedAt ?? b.updatedAt).getTime() - new Date(a.lastCheckedAt ?? a.updatedAt).getTime();
+        return (
+          new Date(b.lastCheckedAt ?? b.updatedAt).getTime() -
+          new Date(a.lastCheckedAt ?? a.updatedAt).getTime()
+        );
       }
 
-      if (a.market !== b.market) return a.market.localeCompare(b.market, "tr");
+      if (a.market !== b.market) {
+        return a.market.localeCompare(b.market, "tr");
+      }
+
       return a.name.localeCompare(b.name, "tr");
     });
-  }, [initialItems, market, onlyChanged, onlyOutOfStock, onlyWithoutImage, query, sort]);
+  }, [
+    initialItems,
+    market,
+    onlyChanged,
+    onlyOutOfStock,
+    onlyWithoutImage,
+    query,
+    sort,
+  ]);
 
   const changedCount = items.filter(
-    (item) => item.previousPrice !== null && item.previousPrice !== item.currentPrice
+    (item) =>
+      item.previousPrice !== null &&
+      item.previousPrice !== item.currentPrice
   ).length;
 
   const outOfStockCount = items.filter((item) => !item.inStock).length;
+
+  const filterButtons: Array<{
+    label: string;
+    active: boolean;
+    toggle: () => void;
+  }> = [
+    {
+      label: "Sadece değişenler",
+      active: onlyChanged,
+      toggle: () => setOnlyChanged((value) => !value),
+    },
+    {
+      label: "Sadece stok dışı",
+      active: onlyOutOfStock,
+      toggle: () => setOnlyOutOfStock((value) => !value),
+    },
+    {
+      label: "Görseli olmayanlar",
+      active: onlyWithoutImage,
+      toggle: () => setOnlyWithoutImage((value) => !value),
+    },
+  ];
 
   return (
     <>
@@ -149,22 +207,18 @@ export default function ReportExplorer({
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          {[
-            ["Sadece değişenler", onlyChanged, setOnlyChanged],
-            ["Sadece stok dışı", onlyOutOfStock, setOnlyOutOfStock],
-            ["Görseli olmayanlar", onlyWithoutImage, setOnlyWithoutImage],
-          ].map(([label, active, setter]) => (
+          {filterButtons.map((filter) => (
             <button
-              key={String(label)}
+              key={filter.label}
               type="button"
-              onClick={() => (setter as (value: boolean) => void)(!(active as boolean))}
+              onClick={filter.toggle}
               className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
-                active
+                filter.active
                   ? "border-blue-500 bg-blue-600 text-white"
                   : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.08]"
               }`}
             >
-              {label}
+              {filter.label}
             </button>
           ))}
         </div>
@@ -172,33 +226,57 @@ export default function ReportExplorer({
 
       <section>
         <div className="mb-5">
-          <h2 className="text-2xl font-semibold tracking-[-0.03em]">Ürün Listesi</h2>
-          <p className="mt-1 text-sm text-slate-400">Güncel fiyatlar, ürün görselleri ve değişim görünümü</p>
+          <h2 className="text-2xl font-semibold tracking-[-0.03em]">
+            Ürün Listesi
+          </h2>
+          <p className="mt-1 text-sm text-slate-400">
+            Güncel fiyatlar, ürün görselleri ve değişim görünümü
+          </p>
         </div>
 
         <div className="space-y-2 md:hidden">
           {items.map((item) => {
-            const hasChange = item.previousPrice !== null && item.previousPrice !== item.currentPrice;
-            const changePositive = hasChange && (item.changePercent ?? 0) > 0;
-            const changeNegative = hasChange && (item.changePercent ?? 0) < 0;
+            const hasChange =
+              item.previousPrice !== null &&
+              item.previousPrice !== item.currentPrice;
+            const changePositive =
+              hasChange && (item.changePercent ?? 0) > 0;
+            const changeNegative =
+              hasChange && (item.changePercent ?? 0) < 0;
 
             return (
               <Link
                 key={`${item.market}-${item.sku}`}
                 href={`/report/detail?sku=${encodeURIComponent(item.sku)}`}
                 className={`block rounded-2xl border border-white/10 px-3 py-3 transition active:scale-[0.99] ${
-                  highlightedSet.has(item.sku) ? "bg-emerald-500/[0.08]" : "bg-white/[0.03]"
+                  highlightedSet.has(item.sku)
+                    ? "bg-emerald-500/[0.08]"
+                    : "bg-white/[0.03]"
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-start gap-3">
-                    <SafeProductImage src={item.imageUrl} alt={item.name} className="h-14 w-14 rounded-xl" />
+                    <SafeProductImage
+                      src={item.imageUrl}
+                      alt={item.name}
+                      className="h-14 w-14 rounded-xl"
+                    />
                     <div className="min-w-0">
-                      <div className="line-clamp-2 text-[13px] font-semibold leading-5 text-white">{item.name}</div>
-                      <div className="mt-1 text-[10px] text-slate-500">SKU: {item.sku}</div>
+                      <div className="line-clamp-2 text-[13px] font-semibold leading-5 text-white">
+                        {item.name}
+                      </div>
+                      <div className="mt-1 text-[10px] text-slate-500">
+                        SKU: {item.sku}
+                      </div>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <MarketLogo market={item.market} compact />
-                        <span className={`rounded-full px-2 py-[3px] text-[10px] font-semibold ${item.inStock ? "bg-emerald-400/10 text-emerald-300" : "bg-rose-400/10 text-rose-300"}`}>
+                        <span
+                          className={`rounded-full px-2 py-[3px] text-[10px] font-semibold ${
+                            item.inStock
+                              ? "bg-emerald-400/10 text-emerald-300"
+                              : "bg-rose-400/10 text-rose-300"
+                          }`}
+                        >
                           {item.inStock ? "Stokta" : "Stok yok"}
                         </span>
                       </div>
@@ -206,9 +284,21 @@ export default function ReportExplorer({
                   </div>
 
                   <div className="shrink-0 text-right">
-                    <div className="text-sm font-semibold text-white">{formatPrice(item.currentPrice)}</div>
-                    <div className="mt-1 text-[11px] text-slate-500">Eski: {formatPrice(item.previousPrice)}</div>
-                    <span className={`mt-2 inline-flex rounded-full px-2 py-[3px] text-[10px] font-semibold ${changePositive ? "bg-emerald-400/10 text-emerald-300" : changeNegative ? "bg-rose-400/10 text-rose-300" : "bg-slate-400/10 text-slate-400"}`}>
+                    <div className="text-sm font-semibold text-white">
+                      {formatPrice(item.currentPrice)}
+                    </div>
+                    <div className="mt-1 text-[11px] text-slate-500">
+                      Eski: {formatPrice(item.previousPrice)}
+                    </div>
+                    <span
+                      className={`mt-2 inline-flex rounded-full px-2 py-[3px] text-[10px] font-semibold ${
+                        changePositive
+                          ? "bg-emerald-400/10 text-emerald-300"
+                          : changeNegative
+                          ? "bg-rose-400/10 text-rose-300"
+                          : "bg-slate-400/10 text-slate-400"
+                      }`}
+                    >
                       {formatPercent(item.changePercent, hasChange)}
                     </span>
                   </div>
@@ -235,37 +325,82 @@ export default function ReportExplorer({
               </thead>
               <tbody>
                 {items.map((item, index) => {
-                  const hasChange = item.previousPrice !== null && item.previousPrice !== item.currentPrice;
-                  const changePositive = hasChange && (item.changePercent ?? 0) > 0;
-                  const changeNegative = hasChange && (item.changePercent ?? 0) < 0;
+                  const hasChange =
+                    item.previousPrice !== null &&
+                    item.previousPrice !== item.currentPrice;
+                  const changePositive =
+                    hasChange && (item.changePercent ?? 0) > 0;
+                  const changeNegative =
+                    hasChange && (item.changePercent ?? 0) < 0;
 
                   return (
-                    <tr key={`${item.market}-${item.sku}`} className={`border-t border-white/10 transition hover:bg-white/[0.03] ${highlightedSet.has(item.sku) ? "bg-emerald-500/[0.06]" : ""}`}>
-                      <td className="px-5 py-4 text-slate-400">{index + 1}</td>
+                    <tr
+                      key={`${item.market}-${item.sku}`}
+                      className={`border-t border-white/10 transition hover:bg-white/[0.03] ${
+                        highlightedSet.has(item.sku)
+                          ? "bg-emerald-500/[0.06]"
+                          : ""
+                      }`}
+                    >
+                      <td className="px-5 py-4 text-slate-400">
+                        {index + 1}
+                      </td>
                       <td className="px-5 py-4">
                         <div className="flex min-w-[320px] items-center gap-4">
-                          <SafeProductImage src={item.imageUrl} alt={item.name} />
+                          <SafeProductImage
+                            src={item.imageUrl}
+                            alt={item.name}
+                          />
                           <div className="min-w-0">
-                            <div className="max-w-[360px] font-medium leading-6 text-white">{item.name}</div>
-                            <div className="mt-1 text-xs text-slate-500">SKU: {item.sku}</div>
+                            <div className="max-w-[360px] font-medium leading-6 text-white">
+                              {item.name}
+                            </div>
+                            <div className="mt-1 text-xs text-slate-500">
+                              SKU: {item.sku}
+                            </div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-4"><MarketLogo market={item.market} /></td>
-                      <td className="px-5 py-4 text-slate-400">{formatPrice(item.previousPrice)}</td>
-                      <td className="px-5 py-4 font-semibold">{formatPrice(item.currentPrice)}</td>
                       <td className="px-5 py-4">
-                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${changePositive ? "bg-emerald-400/10 text-emerald-300" : changeNegative ? "bg-rose-400/10 text-rose-300" : "bg-slate-400/10 text-slate-400"}`}>
+                        <MarketLogo market={item.market} />
+                      </td>
+                      <td className="px-5 py-4 text-slate-400">
+                        {formatPrice(item.previousPrice)}
+                      </td>
+                      <td className="px-5 py-4 font-semibold">
+                        {formatPrice(item.currentPrice)}
+                      </td>
+                      <td className="px-5 py-4">
+                        <span
+                          className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                            changePositive
+                              ? "bg-emerald-400/10 text-emerald-300"
+                              : changeNegative
+                              ? "bg-rose-400/10 text-rose-300"
+                              : "bg-slate-400/10 text-slate-400"
+                          }`}
+                        >
                           {formatPercent(item.changePercent, hasChange)}
                         </span>
                       </td>
                       <td className="px-5 py-4">
-                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${item.inStock ? "bg-emerald-400/10 text-emerald-300" : "bg-rose-400/10 text-rose-300"}`}>
+                        <span
+                          className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+                            item.inStock
+                              ? "bg-emerald-400/10 text-emerald-300"
+                              : "bg-rose-400/10 text-rose-300"
+                          }`}
+                        >
                           {item.inStock ? "Var" : "Yok"}
                         </span>
                       </td>
                       <td className="px-5 py-4">
-                        <Link href={`/report/detail?sku=${encodeURIComponent(item.sku)}`} className="inline-flex rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1.5 font-semibold text-blue-300 transition hover:bg-blue-500/20">
+                        <Link
+                          href={`/report/detail?sku=${encodeURIComponent(
+                            item.sku
+                          )}`}
+                          className="inline-flex rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1.5 font-semibold text-blue-300 transition hover:bg-blue-500/20"
+                        >
                           Aç
                         </Link>
                       </td>

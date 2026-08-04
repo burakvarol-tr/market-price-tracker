@@ -72,46 +72,63 @@ export default async function ProductDetailPage({
       ? Number((((latest.currentPrice - previousPrice) / previousPrice) * 100).toFixed(2))
       : null;
   const unreadable = latest.currentPrice === null;
+  const statusText = unreadable ? "Okunamadı" : latest.inStock ? "Stokta" : "Stok dışı";
 
   return (
     <main className="min-h-screen bg-[#08111F] text-white">
       <div className="mx-auto max-w-[1500px] px-4 py-4 md:px-6">
-        <section className="mb-4 rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_top_right,#1D4ED820,transparent_35%),linear-gradient(135deg,#101B2E_0%,#0B1424_100%)] px-5 py-4">
-          <div className={`grid gap-4 ${latest.imageUrl ? "lg:grid-cols-[1fr_190px]" : ""}`}>
-            <div>
+        <section className="mb-4 overflow-hidden rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_top_right,#1D4ED820,transparent_35%),linear-gradient(135deg,#101B2E_0%,#0B1424_100%)]">
+          <div className={`grid items-stretch gap-0 ${latest.imageUrl ? "lg:grid-cols-[1fr_180px]" : ""}`}>
+            <div className="px-5 py-4">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1 text-[10px] font-semibold tracking-[0.12em] text-blue-200">ÜRÜN DETAYI</span>
                 <MarketLogo market={latest.market} />
+                <span className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${unreadable ? "border-amber-400/20 bg-amber-500/10 text-amber-300" : latest.inStock ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-300" : "border-rose-400/20 bg-rose-500/10 text-rose-300"}`}>
+                  {statusText}
+                </span>
               </div>
-              <h1 className="mt-3 text-2xl font-semibold tracking-[-0.03em] md:text-3xl">{latest.name}</h1>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Link href={`/report?market=${encodeURIComponent(latest.market)}`} className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold">Market raporu</Link>
-                <Link href="/report" className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300">Tüm raporlar</Link>
+
+              <h1 className="mt-3 max-w-5xl text-2xl font-semibold leading-tight tracking-[-0.03em] md:text-3xl">
+                {latest.name}
+              </h1>
+
+              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400">
+                <span>SKU: <strong className="font-medium text-slate-200">{latest.sku}</strong></span>
+                <span>Son kontrol: <strong className="font-medium text-slate-200">{formatDate(latest.lastCheckedAt)}</strong></span>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Link href={`/report?market=${encodeURIComponent(latest.market)}`} className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold hover:bg-blue-500">Market raporu</Link>
+                <Link href="/report" className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-300 hover:bg-white/10">Tüm raporlar</Link>
                 {productUrl && (
-                  <a href={productUrl} target="_blank" rel="noreferrer" className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-300">Markette aç ↗</a>
+                  <a href={productUrl} target="_blank" rel="noreferrer" className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/15">Markette aç ↗</a>
                 )}
               </div>
-              <div className="mt-3 text-xs text-slate-400">Son kontrol: <span className="font-medium text-slate-200">{formatDate(latest.lastCheckedAt)}</span></div>
             </div>
 
             {latest.imageUrl && (
-              <SafeProductImage src={latest.imageUrl} alt={latest.name} className="h-[150px] w-full rounded-2xl" imageClassName="h-full w-full object-contain p-3" />
+              <div className="flex items-center justify-center border-t border-white/10 bg-white/[0.025] p-3 lg:border-l lg:border-t-0">
+                <SafeProductImage
+                  src={latest.imageUrl}
+                  alt={latest.name}
+                  className="h-[170px] w-[135px] rounded-xl"
+                  imageClassName="h-full w-full object-contain"
+                />
+              </div>
             )}
           </div>
         </section>
 
         {unreadable && (
           <section className="mb-4 rounded-xl border border-amber-400/20 bg-amber-500/[0.06] px-4 py-3 text-sm text-amber-200">
-            Bu ürün için fiyat ve stok bilgisi okunamadı. Bu durum “stok yok” anlamına gelmez.
+            Fiyat ve stok bilgisi şu anda okunamadı. Bu durum ürünün stokta olmadığı anlamına gelmez.
           </section>
         )}
 
-        <section className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+        <section className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
           {[
-            ["SKU", latest.sku],
-            ["Güncel", formatPrice(latest.currentPrice)],
-            ["Önceki", formatPrice(previousPrice)],
-            ["Durum", unreadable ? "Okunamadı" : latest.inStock ? "Var" : "Yok"],
+            ["Güncel fiyat", formatPrice(latest.currentPrice)],
+            ["Önceki fiyat", formatPrice(previousPrice)],
+            ["Durum", statusText],
           ].map(([label, value]) => (
             <div key={String(label)} className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
               <div className="text-xs text-slate-400">{label}</div>
@@ -122,8 +139,8 @@ export default async function ProductDetailPage({
 
         <section className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
           {[
-            ["En Düşük", formatPrice(minimumPrice)],
-            ["En Yüksek", formatPrice(maximumPrice)],
+            ["En düşük", formatPrice(minimumPrice)],
+            ["En yüksek", formatPrice(maximumPrice)],
             ["Ortalama", formatPrice(averagePrice)],
             ["Kayıt", history.length],
           ].map(([label, value]) => (
@@ -149,7 +166,7 @@ export default async function ProductDetailPage({
         </section>
 
         <section className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.04]">
-          <div className="border-b border-white/10 px-4 py-3"><h2 className="font-semibold">Fiyat Geçmişi</h2></div>
+          <div className="border-b border-white/10 px-4 py-3"><h2 className="font-semibold">Fiyat geçmişi</h2></div>
           <div className="overflow-x-auto">
             <table className="min-w-full text-xs">
               <thead className="bg-white/[0.04] text-left text-slate-400"><tr><th className="px-4 py-3">Tarih</th><th className="px-4 py-3">Fiyat</th><th className="px-4 py-3">Önceki</th><th className="px-4 py-3">Değişim</th><th className="px-4 py-3">Durum</th></tr></thead>

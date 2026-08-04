@@ -24,6 +24,23 @@ function formatPercent(value: number | null, changed: boolean) {
   return `${value > 0 ? "+" : ""}${value.toFixed(2)}%`;
 }
 
+function dateKeyInTurkey(value?: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Istanbul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+function isChangedToday(item: PriceRecord) {
+  const todayKey = dateKeyInTurkey(new Date().toISOString());
+  return Boolean(item.lastChangedAt) && dateKeyInTurkey(item.lastChangedAt) === todayKey;
+}
+
 function isUnreadable(item: PriceRecord) {
   return item.currentPrice === null;
 }
@@ -67,8 +84,7 @@ export default function ReportExplorer({ initialItems, initialMarket = "", highl
     const normalizedQuery = query.trim().toLocaleLowerCase("tr-TR");
     const filtered = initialItems.filter((item) => {
       const matchesQuery = !normalizedQuery || item.name.toLocaleLowerCase("tr-TR").includes(normalizedQuery) || item.sku.toLocaleLowerCase("tr-TR").includes(normalizedQuery);
-      const hasChange = item.previousPrice !== null && item.previousPrice !== item.currentPrice;
-      return matchesQuery && (!market || item.market === market) && (!onlyChanged || hasChange) && (!onlyOutOfStock || isOutOfStock(item)) && (!onlyUnreadable || isUnreadable(item)) && (!onlyWithoutImage || !item.imageUrl);
+      return matchesQuery && (!market || item.market === market) && (!onlyChanged || isChangedToday(item)) && (!onlyOutOfStock || isOutOfStock(item)) && (!onlyUnreadable || isUnreadable(item)) && (!onlyWithoutImage || !item.imageUrl);
     });
 
     return [...filtered].sort((a, b) => {
@@ -82,12 +98,12 @@ export default function ReportExplorer({ initialItems, initialMarket = "", highl
     });
   }, [initialItems, market, onlyChanged, onlyOutOfStock, onlyUnreadable, onlyWithoutImage, query, sort]);
 
-  const changedCount = items.filter((item) => item.previousPrice !== null && item.previousPrice !== item.currentPrice).length;
+  const changedCount = items.filter(isChangedToday).length;
   const outOfStockCount = items.filter(isOutOfStock).length;
   const unreadableCount = items.filter(isUnreadable).length;
 
   const filterButtons = [
-    { label: "Değişenler", active: onlyChanged, toggle: () => setOnlyChanged((v) => !v) },
+    { label: "Bugün değişenler", active: onlyChanged, toggle: () => setOnlyChanged((v) => !v) },
     { label: "Stok dışı", active: onlyOutOfStock, toggle: () => setOnlyOutOfStock((v) => !v) },
     { label: "Okunamayan", active: onlyUnreadable, toggle: () => setOnlyUnreadable((v) => !v) },
     { label: "Görselsiz", active: onlyWithoutImage, toggle: () => setOnlyWithoutImage((v) => !v) },
@@ -96,7 +112,7 @@ export default function ReportExplorer({ initialItems, initialMarket = "", highl
   return (
     <>
       <section className="mb-4 grid grid-cols-2 gap-2 md:grid-cols-5">
-        {[["Ürün", items.length], ["Değişen", changedCount], ["Stok Dışı", outOfStockCount], ["Okunamayan", unreadableCount], ["Market", market || "Tümü"]].map(([label, value]) => (
+        {[["Ürün", items.length], ["Bugün değişen", changedCount], ["Stok Dışı", outOfStockCount], ["Okunamayan", unreadableCount], ["Market", market || "Tümü"]].map(([label, value]) => (
           <div key={String(label)} className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
             <div className="text-[11px] text-slate-400">{label}</div>
             <div className="mt-1 text-xl font-semibold tracking-[-0.03em]">{value}</div>
@@ -122,7 +138,7 @@ export default function ReportExplorer({ initialItems, initialMarket = "", highl
 
       <section>
         <div className="mb-3 flex items-end justify-between gap-4">
-          <div><h2 className="text-xl font-semibold">Ürün Listesi</h2><p className="mt-0.5 text-xs text-slate-400">Güncel fiyat ve değişim görünümü</p></div>
+          <div><h2 className="text-xl font-semibold">Ürün Listesi</h2><p className="mt-0.5 text-xs text-slate-400">Güncel fiyat ve son kayıtlı değişim görünümü</p></div>
           <div className="text-xs text-slate-500">{items.length} kayıt</div>
         </div>
 

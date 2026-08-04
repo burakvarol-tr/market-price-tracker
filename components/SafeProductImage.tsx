@@ -14,7 +14,7 @@ export default function SafeProductImage({
   src,
   alt,
   className = "h-16 w-16 rounded-2xl",
-  imageClassName = "h-full w-full object-contain",
+  imageClassName = "h-[96%] w-[96%] object-contain",
   placeholderText = "Görsel yok",
 }: Props) {
   const [failed, setFailed] = useState(false);
@@ -22,7 +22,7 @@ export default function SafeProductImage({
 
   return (
     <div
-      className={`flex shrink-0 items-center justify-center overflow-hidden border border-white/10 bg-white p-1.5 ${className}`}
+      className={`flex shrink-0 items-center justify-center overflow-hidden border border-white/10 bg-white p-0.5 ${className}`}
     >
       {showImage ? (
         <img

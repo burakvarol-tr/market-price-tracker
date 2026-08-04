@@ -1,5 +1,6 @@
 import { getLatestPrices } from "@/lib/firestorePrices";
 import { getRecentAnalyticsHistory } from "@/lib/analyticsData";
+import { resolveProductImage } from "@/lib/localProductImages";
 import ReportExplorer from "@/components/ReportExplorer";
 import DashboardHeader from "@/components/DashboardHeader";
 
@@ -17,16 +18,21 @@ export default async function ReportPage({
     .map((value) => value.trim())
     .filter(Boolean);
 
-  const [allItems, recentHistory] = await Promise.all([
+  const [rawItems, recentHistory] = await Promise.all([
     getLatestPrices(),
-    getRecentAnalyticsHistory(120),
+    getRecentAnalyticsHistory(240),
   ]);
 
+  const allItems = rawItems.map((item) => ({
+    ...item,
+    imageUrl: resolveProductImage(item.market, item.sku, item.imageUrl),
+  }));
+
   const priceHistoryMap = recentHistory.reduce<Record<string, number[]>>((map, item) => {
-    if (item.price === null) return map;
+    if (item.price === null || Number.isNaN(item.price)) return map;
     const values = map[item.sku] ?? [];
-    values.unshift(item.price);
-    map[item.sku] = values.slice(-8);
+    values.push(item.price);
+    map[item.sku] = values.slice(-12);
     return map;
   }, {});
 

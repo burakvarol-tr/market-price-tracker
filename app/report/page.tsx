@@ -47,6 +47,13 @@ export default async function ReportPage({
               </Link>
 
               <Link
+                href="/report/analysis"
+                className="rounded-full border border-emerald-400/20 bg-emerald-500/10 px-5 py-3 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-500/20"
+              >
+                Analiz panelini aç
+              </Link>
+
+              <Link
                 href="/api/check-prices"
                 className="rounded-full border border-white/10 bg-white/5 px-5 py-3 text-sm font-medium text-slate-300 transition hover:bg-white/10"
               >

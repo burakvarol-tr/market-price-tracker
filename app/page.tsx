@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getLatestPrices } from "@/lib/firestorePrices";
+import MarketLogo from "@/components/MarketLogo";
 
 export const dynamic = "force-dynamic";
 
@@ -10,403 +11,126 @@ function formatPrice(price?: number | null) {
 
 function formatPercent(value?: number | null) {
   if (value == null || Number.isNaN(value)) return "-";
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${value.toFixed(2)}%`;
-}
-
-function marketColor(market: string) {
-  if (market === "A101") return "bg-sky-500/15 text-sky-300 border-sky-400/20";
-  if (market === "SOK")
-    return "bg-yellow-500/15 text-yellow-300 border-yellow-400/20";
-  if (market === "BIZIM")
-    return "bg-orange-500/15 text-orange-300 border-orange-400/20";
-  return "bg-slate-500/15 text-slate-300 border-slate-400/20";
-}
-
-function sortByMarket<T extends { market: string; name: string }>(items: T[]) {
-  const marketOrder = ["A101", "BIZIM", "SOK", "BIM", "CARREFOUR", "FILE"];
-
-  return [...items].sort((a, b) => {
-    const aIndex = marketOrder.indexOf(a.market);
-    const bIndex = marketOrder.indexOf(b.market);
-
-    const safeA = aIndex === -1 ? 999 : aIndex;
-    const safeB = bIndex === -1 ? 999 : bIndex;
-
-    if (safeA !== safeB) return safeA - safeB;
-
-    return a.name.localeCompare(b.name, "tr");
-  });
+  return `${value > 0 ? "+" : ""}${value.toFixed(2)}%`;
 }
 
 export default async function HomePage() {
   const items = await getLatestPrices();
-  const sortedItems = sortByMarket(items);
-
   const markets = Array.from(new Set(items.map((item) => item.market)));
-
-  const changedItems = sortByMarket(
-    items.filter(
-      (item) =>
-        item.previousPrice !== null && item.previousPrice !== item.currentPrice
-    )
+  const changedItems = items.filter(
+    (item) => item.previousPrice !== null && item.previousPrice !== item.currentPrice
   );
+  const readableItems = items.filter((item) => item.currentPrice !== null);
+  const unreadableItems = items.filter((item) => item.currentPrice === null);
+  const increased = changedItems.filter((item) => (item.changePercent ?? 0) > 0).length;
+  const decreased = changedItems.filter((item) => (item.changePercent ?? 0) < 0).length;
 
-  const marketSummaries = markets
-    .map((market) => {
-      const marketItems = items.filter((item) => item.market === market);
-      const changedCount = marketItems.filter(
-        (item) =>
-          item.previousPrice !== null &&
-          item.previousPrice !== item.currentPrice
-      ).length;
-
-      return {
-        market,
-        total: marketItems.length,
-        changedCount,
-        lastUpdated:
-          marketItems.length > 0
-            ? marketItems
-                .map((x) => new Date(x.updatedAt).getTime())
-                .sort((a, b) => b - a)[0]
-            : null,
-      };
-    })
-    .sort((a, b) => {
-      const order = ["A101", "BIZIM", "SOK", "BIM", "CARREFOUR", "FILE"];
-      const aIndex = order.indexOf(a.market);
-      const bIndex = order.indexOf(b.market);
-      return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
-    });
+  const marketSummaries = markets.map((market) => {
+    const marketItems = items.filter((item) => item.market === market);
+    return {
+      market,
+      total: marketItems.length,
+      changed: marketItems.filter(
+        (item) => item.previousPrice !== null && item.previousPrice !== item.currentPrice
+      ).length,
+      unreadable: marketItems.filter((item) => item.currentPrice === null).length,
+      lastUpdated: Math.max(...marketItems.map((item) => new Date(item.updatedAt).getTime())),
+    };
+  });
 
   const lastUpdated = items.length
-    ? new Date(
-        Math.max(...items.map((x) => new Date(x.updatedAt).getTime()))
-      ).toLocaleString("tr-TR")
+    ? new Date(Math.max(...items.map((item) => new Date(item.updatedAt).getTime()))).toLocaleString("tr-TR")
     : "-";
 
   return (
     <main className="min-h-screen bg-[#08111F] text-white">
-      <div className="mx-auto max-w-7xl px-4 py-6 md:px-8 md:py-10">
-        <section className="mb-6 overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top_right,#1D4ED820,transparent_35%),linear-gradient(135deg,#101B2E_0%,#0B1424_100%)] p-6 shadow-2xl md:mb-8 md:rounded-[32px] md:p-10">
-          <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+      <div className="mx-auto max-w-[1500px] px-4 py-4 md:px-6 md:py-5">
+        <section className="mb-4 rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_top_right,#1D4ED820,transparent_35%),linear-gradient(135deg,#101B2E_0%,#0B1424_100%)] px-5 py-4 shadow-xl">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <div className="mb-5 inline-flex rounded-full border border-blue-400/20 bg-blue-500/10 px-4 py-1.5 text-[11px] font-semibold tracking-[0.12em] text-blue-200 md:text-xs">
-                MARKET PRICE TRACKER
+              <div className="inline-flex rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1 text-[10px] font-semibold tracking-[0.12em] text-blue-200">
+                MARKET FİYAT TAKİBİ
               </div>
-
-              <h1 className="text-3xl font-semibold tracking-[-0.04em] md:text-6xl">
-                Market Fiyat Takibi
-              </h1>
-
-              <p className="mt-4 max-w-2xl text-[15px] leading-7 text-slate-300 md:text-lg md:leading-8">
-                Seçili ürünlerin güncel fiyatlarını, fiyat değişimlerini ve
-                market bazlı durumunu tek ekranda takip edin.
-              </p>
-
-              <div className="mt-6 flex flex-wrap gap-3">
-                <Link
-                  href="/report"
-                  className="rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-500 md:px-6"
-                >
-                  Tüm raporu aç
-                </Link>
-
-                <div className="rounded-full border border-white/10 bg-white/5 px-5 py-3 text-sm font-medium text-slate-300">
-                  {items.length} ürün izleniyor
-                </div>
-              </div>
+              <h1 className="mt-2 text-2xl font-semibold tracking-[-0.03em] md:text-3xl">Yönetim Paneli</h1>
+              <p className="mt-1 text-sm text-slate-400">Fiyat, stok ve veri erişim durumunu tek ekranda izleyin.</p>
             </div>
 
-            <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 text-sm text-slate-300 md:min-w-[220px]">
-              <div className="text-slate-400">Son güncelleme</div>
-              <div className="mt-1 text-base font-semibold text-white md:text-lg">
-                {lastUpdated}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-slate-400">
+                Son güncelleme: <span className="font-semibold text-white">{lastUpdated}</span>
               </div>
+              <Link href="/report" className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold hover:bg-blue-500">Fiyat raporu</Link>
+              <Link href="/report/analysis" className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300">Analiz</Link>
+              <Link href="/price-check" className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">Fiyat kontrolü</Link>
             </div>
           </div>
         </section>
 
-        <section className="mb-6 grid gap-3 sm:grid-cols-2 md:mb-8 md:grid-cols-4 md:gap-4">
+        <section className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
           {[
-            ["Toplam Ürün", items.length],
-            ["Fiyat Değişen", changedItems.length],
-            ["Market Sayısı", markets.length],
-            ["Aktif Takip", items.length],
-          ].map(([label, value]) => (
-            <div
-              key={label}
-              className="rounded-[22px] border border-white/10 bg-white/[0.04] p-5 shadow-xl shadow-black/10 md:rounded-[26px] md:p-6"
-            >
-              <div className="text-sm text-slate-400">{label}</div>
-              <div className="mt-3 text-3xl font-semibold tracking-[-0.04em] md:text-4xl">
-                {value}
-              </div>
+            ["Toplam", items.length, "text-white"],
+            ["Okunan", readableItems.length, "text-blue-300"],
+            ["Değişen", changedItems.length, "text-emerald-300"],
+            ["Artan", increased, "text-emerald-300"],
+            ["Düşen", decreased, "text-rose-300"],
+            ["Okunamayan", unreadableItems.length, "text-amber-300"],
+          ].map(([label, value, color]) => (
+            <div key={String(label)} className="rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3">
+              <div className="text-xs text-slate-400">{label}</div>
+              <div className={`mt-1 text-2xl font-semibold ${color}`}>{value}</div>
             </div>
           ))}
         </section>
 
-        <section className="mb-6 md:mb-8">
-          <div className="mb-4 md:mb-5">
-            <h2 className="text-2xl font-semibold tracking-[-0.03em]">
-              Marketler
-            </h2>
-            <p className="mt-1 text-sm text-slate-400">
-              Her market için ayrı rapor ekranına geçebilirsiniz.
-            </p>
+        <section className="mb-4">
+          <div className="mb-2 flex items-end justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">Marketler</h2>
+              <p className="text-xs text-slate-500">Market bazında güncel özet</p>
+            </div>
+            <span className="text-xs text-slate-500">{markets.length} market</span>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {marketSummaries.map((summary) => (
-              <Link
-                key={summary.market}
-                href={`/report?market=${encodeURIComponent(summary.market)}`}
-                className="rounded-[24px] border border-white/10 bg-white/[0.04] p-5 transition hover:-translate-y-1 hover:bg-white/[0.06] md:rounded-[28px] md:p-6"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-2xl font-semibold">
-                      {summary.market}
-                    </div>
-                    <div className="mt-1 text-sm text-slate-400">
-                      Market raporunu aç
-                    </div>
-                  </div>
-
-                  <div
-                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${marketColor(
-                      summary.market
-                    )}`}
-                  >
-                    {summary.total} ürün
-                  </div>
+              <Link key={summary.market} href={`/report?market=${encodeURIComponent(summary.market)}`} className="rounded-xl border border-white/10 bg-white/[0.04] p-4 transition hover:bg-white/[0.07]">
+                <div className="flex items-center justify-between gap-3">
+                  <MarketLogo market={summary.market} />
+                  <span className="text-xs text-slate-500">{summary.total} ürün</span>
                 </div>
-
-                <div className="mt-5 grid grid-cols-2 gap-3">
-                  <div className="rounded-2xl border border-white/10 bg-black/15 p-4">
-                    <div className="text-xs text-slate-400">Toplam</div>
-                    <div className="mt-2 text-2xl font-semibold">
-                      {summary.total}
-                    </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-white/10 bg-black/15 p-4">
-                    <div className="text-xs text-slate-400">Değişen</div>
-                    <div className="mt-2 text-2xl font-semibold text-emerald-300">
-                      {summary.changedCount}
-                    </div>
-                  </div>
+                <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded-lg bg-black/20 px-2 py-2"><div className="text-[10px] text-slate-500">Toplam</div><div className="mt-1 font-semibold">{summary.total}</div></div>
+                  <div className="rounded-lg bg-black/20 px-2 py-2"><div className="text-[10px] text-slate-500">Değişen</div><div className="mt-1 font-semibold text-emerald-300">{summary.changed}</div></div>
+                  <div className="rounded-lg bg-black/20 px-2 py-2"><div className="text-[10px] text-slate-500">Okunamayan</div><div className="mt-1 font-semibold text-amber-300">{summary.unreadable}</div></div>
                 </div>
-
-                <div className="mt-5 text-xs text-slate-500">
-                  Son güncelleme:{" "}
-                  {summary.lastUpdated
-                    ? new Date(summary.lastUpdated).toLocaleString("tr-TR")
-                    : "-"}
-                </div>
+                <div className="mt-2 text-[10px] text-slate-600">{new Date(summary.lastUpdated).toLocaleString("tr-TR")}</div>
               </Link>
             ))}
           </div>
         </section>
 
-        {changedItems.length > 0 && (
-          <section className="mb-6 rounded-[26px] border border-emerald-400/15 bg-emerald-500/[0.06] p-5 md:mb-8 md:rounded-[30px] md:p-6">
-            <div className="mb-4 md:mb-5">
-              <h2 className="text-xl font-semibold">Fiyatı Değişen Ürünler</h2>
-              <p className="mt-1 text-sm text-slate-400">
-                Geçmiş fiyata göre değişim görünen ürünler.
-              </p>
+        <section className="grid gap-4 lg:grid-cols-[1fr_1.2fr]">
+          <div className="rounded-xl border border-white/10 bg-white/[0.04]">
+            <div className="border-b border-white/10 px-4 py-3"><h2 className="font-semibold">Bugünkü Özet</h2></div>
+            <div className="grid grid-cols-2 gap-2 p-4 text-sm">
+              <div className="rounded-lg bg-black/20 p-3"><span className="text-slate-400">Kontrol edilen</span><strong className="float-right">{items.length}</strong></div>
+              <div className="rounded-lg bg-black/20 p-3"><span className="text-slate-400">Fiyat değişen</span><strong className="float-right text-emerald-300">{changedItems.length}</strong></div>
+              <div className="rounded-lg bg-black/20 p-3"><span className="text-slate-400">Fiyat artan</span><strong className="float-right text-emerald-300">{increased}</strong></div>
+              <div className="rounded-lg bg-black/20 p-3"><span className="text-slate-400">Fiyat düşen</span><strong className="float-right text-rose-300">{decreased}</strong></div>
+              <div className="col-span-2 rounded-lg bg-amber-500/[0.06] p-3"><span className="text-slate-400">Verisi okunamayan</span><strong className="float-right text-amber-300">{unreadableItems.length}</strong></div>
             </div>
+          </div>
 
-            <div className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-xl border border-white/10 bg-white/[0.04]">
+            <div className="border-b border-white/10 px-4 py-3"><h2 className="font-semibold">Son fiyat hareketleri</h2></div>
+            <div className="divide-y divide-white/10">
               {changedItems.slice(0, 6).map((item) => (
-                <Link
-                  key={item.sku}
-                  href={`/report/detail?sku=${item.sku}`}
-                  className="rounded-2xl border border-white/10 bg-black/20 p-4 transition hover:bg-black/30"
-                >
-                  <div className="text-sm font-semibold leading-6">
-                    {item.name}
-                  </div>
-                  <div className="mt-3 flex items-center justify-between gap-2 text-sm">
-                    <span className="text-slate-400">
-                      {formatPrice(item.previousPrice)}
-                    </span>
-                    <span className="text-slate-500">→</span>
-                    <span className="font-semibold">
-                      {formatPrice(item.currentPrice)}
-                    </span>
-                    <span className="rounded-full bg-emerald-400/10 px-2 py-1 text-xs font-semibold text-emerald-300">
-                      {formatPercent(item.changePercent)}
-                    </span>
-                  </div>
+                <Link key={`${item.market}-${item.sku}`} href={`/report/detail?sku=${encodeURIComponent(item.sku)}`} className="grid grid-cols-[1fr_auto_auto] items-center gap-3 px-4 py-2.5 text-sm hover:bg-white/[0.03]">
+                  <div className="min-w-0"><div className="truncate font-medium">{item.name}</div><div className="text-[10px] text-slate-500">{item.market} · {item.sku}</div></div>
+                  <div className="text-right text-xs text-slate-400">{formatPrice(item.previousPrice)} → <span className="font-semibold text-white">{formatPrice(item.currentPrice)}</span></div>
+                  <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${(item.changePercent ?? 0) >= 0 ? "bg-emerald-400/10 text-emerald-300" : "bg-rose-400/10 text-rose-300"}`}>{formatPercent(item.changePercent)}</span>
                 </Link>
               ))}
-            </div>
-          </section>
-        )}
-
-        <section>
-          <div className="mb-5">
-            <h2 className="text-2xl font-semibold tracking-[-0.03em]">
-              Son Durum
-            </h2>
-            <p className="mt-1 text-sm text-slate-400">
-              Ürünler firma bazında sıralanmıştır.
-            </p>
-          </div>
-
-          <div className="space-y-2 md:hidden">
-            {sortedItems.map((item, index) => {
-              const hasChange =
-                item.previousPrice !== null &&
-                item.previousPrice !== item.currentPrice;
-
-              return (
-                <Link
-                  key={item.sku}
-                  href={`/report/detail?sku=${item.sku}`}
-                  className="flex items-start justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3 transition active:scale-[0.99]"
-                >
-                  <div className="flex min-w-0 items-start gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/20 text-xs font-semibold text-slate-300">
-                      {index + 1}
-                    </div>
-
-                    <div className="min-w-0">
-                      <div className="line-clamp-2 text-[13px] font-semibold leading-5 text-white">
-                        {item.name}
-                      </div>
-
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
-                        <span>{item.sku}</span>
-
-                        <span
-                          className={`rounded-full border px-2 py-[2px] font-semibold ${marketColor(
-                            item.market
-                          )}`}
-                        >
-                          {item.market}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="shrink-0 text-right">
-                    <div className="text-sm font-semibold text-white">
-                      {formatPrice(item.currentPrice)}
-                    </div>
-
-                    <div className="mt-1 flex items-center justify-end gap-2">
-                      <span className="text-[11px] text-slate-500">
-                        {formatPrice(item.previousPrice)}
-                      </span>
-
-                      {hasChange ? (
-                        <span className="rounded-full bg-emerald-400/10 px-2 py-[3px] text-[10px] font-semibold text-emerald-300">
-                          {formatPercent(item.changePercent)}
-                        </span>
-                      ) : (
-                        <span className="rounded-full bg-slate-400/10 px-2 py-[3px] text-[10px] text-slate-400">
-                          -
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-
-          <div className="hidden overflow-hidden rounded-[30px] border border-white/10 bg-white/[0.04] shadow-2xl shadow-black/20 md:block">
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead className="bg-white/[0.04] text-left text-slate-400">
-                  <tr>
-                    <th className="px-5 py-4 font-semibold">#</th>
-                    <th className="px-5 py-4 font-semibold">Ürün</th>
-                    <th className="px-5 py-4 font-semibold">SKU</th>
-                    <th className="px-5 py-4 font-semibold">Market</th>
-                    <th className="px-5 py-4 font-semibold">Güncel Fiyat</th>
-                    <th className="px-5 py-4 font-semibold">Önceki Fiyat</th>
-                    <th className="px-5 py-4 font-semibold">Değişim</th>
-                    <th className="px-5 py-4 font-semibold">Detay</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {sortedItems.map((item, index) => {
-                    const hasChange =
-                      item.previousPrice !== null &&
-                      item.previousPrice !== item.currentPrice;
-
-                    return (
-                      <tr
-                        key={item.sku}
-                        className="border-t border-white/10 transition hover:bg-white/[0.03]"
-                      >
-                        <td className="px-5 py-4 text-slate-400">
-                          {index + 1}
-                        </td>
-                        <td className="px-5 py-4">
-                          <div className="max-w-[340px] font-medium leading-6">
-                            {item.name}
-                          </div>
-                        </td>
-                        <td className="px-5 py-4 text-slate-400">
-                          {item.sku}
-                        </td>
-                        <td className="px-5 py-4">
-                          <span
-                            className={`rounded-full border px-3 py-1 text-xs font-semibold ${marketColor(
-                              item.market
-                            )}`}
-                          >
-                            {item.market}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4 font-semibold">
-                          {formatPrice(item.currentPrice)}
-                        </td>
-                        <td className="px-5 py-4 text-slate-400">
-                          {formatPrice(item.previousPrice)}
-                        </td>
-                        <td className="px-5 py-4">
-                          {hasChange ? (
-                            <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-300">
-                              {formatPercent(item.changePercent)}
-                            </span>
-                          ) : (
-                            <span className="rounded-full bg-slate-400/10 px-3 py-1 text-xs text-slate-400">
-                              -
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-5 py-4">
-                          <Link
-                            href={`/report/detail?sku=${item.sku}`}
-                            className="font-semibold text-blue-300 hover:text-blue-200"
-                          >
-                            Aç
-                          </Link>
-                        </td>
-                      </tr>
-                    );
-                  })}
-
-                  {!sortedItems.length && (
-                    <tr>
-                      <td
-                        colSpan={8}
-                        className="px-6 py-14 text-center text-slate-400"
-                      >
-                        Veri bulunamadı
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
             </div>
           </div>
         </section>

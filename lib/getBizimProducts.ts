@@ -130,21 +130,68 @@ function parseBizimPriceFromHtml(
   };
 }
 
+function cleanImageUrl(value: string): string {
+  return value
+    .replace(/&amp;/g, "&")
+    .replace(/\\u002F/g, "/")
+    .replace(/\\/g, "")
+    .trim();
+}
+
+function isLikelyProductImage(value: string): boolean {
+  const normalized = value.toLowerCase();
+  const blockedTerms = [
+    "logo",
+    "icon",
+    "favicon",
+    "placeholder",
+    "payment",
+    "visa",
+    "mastercard",
+    "cargo",
+    "kargo",
+    "spinner",
+    "loading",
+    "battery",
+    "pil",
+  ];
+
+  return (
+    /^https?:\/\//i.test(value) &&
+    /\.(?:jpg|jpeg|png|webp)(?:\?|$)/i.test(value) &&
+    !blockedTerms.some((term) => normalized.includes(term))
+  );
+}
+
 function parseBizimImageFromHtml(html: string): string | null {
-  const imageMatch =
-    html.match(
-      /https:\/\/[^"'\\\s<>]+bizimtoptan[^"'\\\s<>]+\.(?:jpg|jpeg|png|webp)/i
-    ) ||
-    html.match(
-      /https:\/\/img-bizimtoptan[^"'\\\s<>]+\.(?:jpg|jpeg|png|webp)/i
-    ) ||
-    html.match(/"image"\s*:\s*"([^"]+)"/i);
+  const candidates: string[] = [];
 
-  const imageUrl = imageMatch?.[1] || imageMatch?.[0];
+  const ogImage = html.match(
+    /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i
+  )?.[1];
+  if (ogImage) candidates.push(ogImage);
 
-  if (!imageUrl) return null;
+  const twitterImage = html.match(
+    /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i
+  )?.[1];
+  if (twitterImage) candidates.push(twitterImage);
 
-  return imageUrl.replace(/\\u002F/g, "/").replace(/\\/g, "");
+  for (const match of html.matchAll(/"image"\s*:\s*"([^"]+)"/gi)) {
+    if (match[1]) candidates.push(match[1]);
+  }
+
+  for (const match of html.matchAll(/(?:src|data-src)=["']([^"']+)["']/gi)) {
+    if (match[1]) candidates.push(match[1]);
+  }
+
+  for (const rawCandidate of candidates) {
+    const candidate = cleanImageUrl(rawCandidate);
+    if (isLikelyProductImage(candidate)) {
+      return candidate;
+    }
+  }
+
+  return null;
 }
 
 export async function getBizimProductBySku(
@@ -212,6 +259,7 @@ export async function getBizimProductBySku(
         unitsPerCase: product.unitsPerCase ?? null,
         stockDetected: inStock,
         stockTextDetected: parsedPrice.stockTextDetected,
+        imageFound: imageUrl !== null,
       },
     };
   } catch (error) {

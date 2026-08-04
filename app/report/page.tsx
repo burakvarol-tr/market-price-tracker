@@ -1,4 +1,5 @@
 import { getLatestPrices } from "@/lib/firestorePrices";
+import { getRecentAnalyticsHistory } from "@/lib/analyticsData";
 import ReportExplorer from "@/components/ReportExplorer";
 import DashboardHeader from "@/components/DashboardHeader";
 
@@ -16,7 +17,18 @@ export default async function ReportPage({
     .map((value) => value.trim())
     .filter(Boolean);
 
-  const allItems = await getLatestPrices();
+  const [allItems, recentHistory] = await Promise.all([
+    getLatestPrices(),
+    getRecentAnalyticsHistory(120),
+  ]);
+
+  const priceHistoryMap = recentHistory.reduce<Record<string, number[]>>((map, item) => {
+    if (item.price === null) return map;
+    const values = map[item.sku] ?? [];
+    values.unshift(item.price);
+    map[item.sku] = values.slice(-8);
+    return map;
+  }, {});
 
   return (
     <main className="min-h-screen bg-[#07101D] text-white">
@@ -24,10 +36,11 @@ export default async function ReportPage({
         <DashboardHeader
           eyebrow="PERAKENDE FİYAT İZLEME"
           title="Fiyat raporu"
-          description="Ürünleri arayın, market ve durum bazında filtreleyin; güncel fiyatları tek ekranda karşılaştırın."
+          description="Ürünleri arayın, market, kategori ve durum bazında filtreleyin; mini trendlerle fiyat hareketini tek ekranda izleyin."
           navItems={[
-            { href: "/", label: "Ana sayfa", tone: "primary" },
-            { href: "/report/analysis", label: "Analiz paneli", tone: "success" },
+            { href: "/", label: "Ana sayfa", tone: "neutral" },
+            { href: "/report/analysis", label: "Analiz", tone: "success" },
+            { href: "/report/intelligence", label: "İleri analiz", tone: "primary" },
             { href: "/price-check", label: "Fiyat kontrolü", tone: "neutral" },
           ]}
         />
@@ -36,6 +49,7 @@ export default async function ReportPage({
           initialItems={allItems}
           initialMarket={market}
           highlightedSkus={highlightedSkus}
+          priceHistoryMap={priceHistoryMap}
         />
       </div>
     </main>

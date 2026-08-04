@@ -126,4 +126,9 @@ export const A101_PRODUCTS: TrackedProduct[] = [
   name: "Ceviz File 500 g",
   market: "A101",
 },
+ {
+  sku: "20000792",
+  name: "Sarımsak File 200 g",
+  market: "A101",
+},
 ];

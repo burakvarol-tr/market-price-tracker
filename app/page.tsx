@@ -14,33 +14,44 @@ function formatPercent(value?: number | null) {
   return `${value > 0 ? "+" : ""}${value.toFixed(2)}%`;
 }
 
-const marketCardStyles: Record<string, string> = {
-  A101: "border-cyan-400/25 bg-cyan-500/[0.05] hover:bg-cyan-500/[0.08]",
-  SOK: "border-yellow-400/25 bg-yellow-500/[0.05] hover:bg-yellow-500/[0.08]",
-  BIZIM: "border-orange-400/25 bg-orange-500/[0.05] hover:bg-orange-500/[0.08]",
-  CARREFOUR: "border-blue-300/25 bg-blue-500/[0.05] hover:bg-blue-500/[0.08]",
+function dateKeyInTurkey(value?: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Istanbul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+function isChangedToday(item: { lastChangedAt?: string | null }) {
+  const todayKey = dateKeyInTurkey(new Date().toISOString());
+  return Boolean(item.lastChangedAt) && dateKeyInTurkey(item.lastChangedAt) === todayKey;
+}
+
+const accentBars: Record<string, string> = {
+  A101: "from-cyan-400 to-cyan-300",
+  SOK: "from-yellow-300 to-red-400",
+  BIZIM: "from-red-500 to-orange-400",
+  CARREFOUR: "from-blue-500 via-white to-red-500",
 };
 
 export default async function HomePage() {
   const items = await getLatestPrices();
   const markets = Array.from(new Set(items.map((item) => item.market)));
-  const changedItems = items.filter(
-    (item) => item.previousPrice !== null && item.previousPrice !== item.currentPrice
-  );
+  const todayChangedItems = items.filter(isChangedToday);
   const unreadableItems = items.filter((item) => item.currentPrice === null);
 
   const marketSummaries = markets.map((market) => {
     const marketItems = items.filter((item) => item.market === market);
-    const changed = marketItems.filter(
-      (item) => item.previousPrice !== null && item.previousPrice !== item.currentPrice
-    ).length;
-    const unreadable = marketItems.filter((item) => item.currentPrice === null).length;
+    const changedToday = marketItems.filter(isChangedToday).length;
 
     return {
       market,
       total: marketItems.length,
-      changed,
-      unreadable,
+      changedToday,
       lastUpdated: Math.max(...marketItems.map((item) => new Date(item.updatedAt).getTime())),
     };
   });
@@ -76,7 +87,7 @@ export default async function HomePage() {
         <section className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
           {[
             ["Toplam ürün", items.length, "text-white"],
-            ["Fiyatı değişen", changedItems.length, "text-emerald-300"],
+            ["Bugün değişen", todayChangedItems.length, "text-emerald-300"],
             ["Okunamayan", unreadableItems.length, "text-amber-300"],
             ["Aktif market", markets.length, "text-blue-300"],
           ].map(([label, value, color]) => (
@@ -97,54 +108,57 @@ export default async function HomePage() {
           </div>
 
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {marketSummaries.map((summary) => {
-              const statusText = summary.unreadable
-                ? `${summary.unreadable} ürün okunamadı`
-                : summary.changed
-                ? `${summary.changed} üründe fiyat değişimi`
-                : "Yeni değişiklik yok";
+            {marketSummaries.map((summary) => (
+              <Link
+                key={summary.market}
+                href={`/report?market=${encodeURIComponent(summary.market)}`}
+                className="group relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.035] p-4 transition hover:-translate-y-0.5 hover:bg-white/[0.055]"
+              >
+                <div className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${accentBars[summary.market] ?? "from-slate-500 to-slate-300"}`} />
 
-              return (
-                <Link
-                  key={summary.market}
-                  href={`/report?market=${encodeURIComponent(summary.market)}`}
-                  className={`group rounded-xl border p-4 transition hover:-translate-y-0.5 ${marketCardStyles[summary.market] ?? "border-white/10 bg-white/[0.04] hover:bg-white/[0.07]"}`}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <MarketLogo market={summary.market} />
-                    <span className="rounded-full border border-white/10 bg-black/15 px-2.5 py-1 text-xs text-slate-300">
-                      {summary.total} ürün
-                    </span>
-                  </div>
+                <div className="flex items-center justify-between gap-3">
+                  <MarketLogo market={summary.market} />
+                  <span className="rounded-full border border-white/10 bg-black/15 px-2.5 py-1 text-xs text-slate-300">
+                    {summary.total} ürün
+                  </span>
+                </div>
 
-                  <div className={`mt-4 text-sm font-medium ${summary.unreadable ? "text-amber-300" : summary.changed ? "text-emerald-300" : "text-slate-300"}`}>
-                    {statusText}
-                  </div>
-                  <div className="mt-1 text-xs text-slate-500">Raporu aç →</div>
-                  <div className="mt-3 text-[10px] text-slate-600">{new Date(summary.lastUpdated).toLocaleString("tr-TR")}</div>
-                </Link>
-              );
-            })}
+                <div className="mt-4 text-sm font-medium text-slate-200">
+                  {summary.changedToday > 0
+                    ? `Bugün ${summary.changedToday} üründe fiyat değişti`
+                    : "Bugün fiyat değişimi yok"}
+                </div>
+                <div className="mt-1 text-xs text-slate-500">Raporu aç →</div>
+                <div className="mt-3 text-[10px] text-slate-600">{new Date(summary.lastUpdated).toLocaleString("tr-TR")}</div>
+              </Link>
+            ))}
           </div>
         </section>
 
         <section className="rounded-xl border border-white/10 bg-white/[0.04]">
           <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-            <h2 className="font-semibold">Son fiyat hareketleri</h2>
-            <Link href="/report?changed=1" className="text-xs font-medium text-blue-300 hover:text-blue-200">Tümünü gör</Link>
+            <h2 className="font-semibold">Bugünkü fiyat hareketleri</h2>
+            <Link href="/report" className="text-xs font-medium text-blue-300 hover:text-blue-200">Tüm raporu gör</Link>
           </div>
-          <div className="divide-y divide-white/10">
-            {changedItems.slice(0, 5).map((item) => (
-              <Link key={`${item.market}-${item.sku}`} href={`/report/detail?sku=${encodeURIComponent(item.sku)}`} className="grid grid-cols-[1fr_auto_auto] items-center gap-3 px-4 py-2.5 text-sm hover:bg-white/[0.03]">
-                <div className="min-w-0">
-                  <div className="truncate font-medium">{item.name}</div>
-                  <div className="text-[10px] text-slate-500">{item.market} · {item.sku}</div>
-                </div>
-                <div className="text-right text-xs text-slate-400">{formatPrice(item.previousPrice)} → <span className="font-semibold text-white">{formatPrice(item.currentPrice)}</span></div>
-                <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${(item.changePercent ?? 0) >= 0 ? "bg-emerald-400/10 text-emerald-300" : "bg-rose-400/10 text-rose-300"}`}>{formatPercent(item.changePercent)}</span>
-              </Link>
-            ))}
-          </div>
+
+          {todayChangedItems.length > 0 ? (
+            <div className="divide-y divide-white/10">
+              {todayChangedItems.slice(0, 5).map((item) => (
+                <Link key={`${item.market}-${item.sku}`} href={`/report/detail?sku=${encodeURIComponent(item.sku)}`} className="grid grid-cols-[1fr_auto_auto] items-center gap-3 px-4 py-2.5 text-sm hover:bg-white/[0.03]">
+                  <div className="min-w-0">
+                    <div className="truncate font-medium">{item.name}</div>
+                    <div className="text-[10px] text-slate-500">{item.market} · {item.sku}</div>
+                  </div>
+                  <div className="text-right text-xs text-slate-400">{formatPrice(item.previousPrice)} → <span className="font-semibold text-white">{formatPrice(item.currentPrice)}</span></div>
+                  <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${(item.changePercent ?? 0) >= 0 ? "bg-emerald-400/10 text-emerald-300" : "bg-rose-400/10 text-rose-300"}`}>{formatPercent(item.changePercent)}</span>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="px-4 py-8 text-center text-sm text-slate-400">
+              Bugün kaydedilmiş yeni bir fiyat değişikliği yok.
+            </div>
+          )}
         </section>
       </div>
     </main>

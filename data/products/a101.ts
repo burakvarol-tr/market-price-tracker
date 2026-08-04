@@ -130,5 +130,7 @@ export const A101_PRODUCTS: TrackedProduct[] = [
   sku: "20000792",
   name: "Sarımsak File 200 g",
   market: "A101",
+  manualImageUrl:
+    "https://cdn2.a101.com.tr/dbmk89vnr/CALL/Image/get/eYmRe6QFa8_500x500.png",
 },
 ];

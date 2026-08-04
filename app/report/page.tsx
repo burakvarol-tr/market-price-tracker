@@ -41,6 +41,8 @@ export default async function ReportPage({
             { href: "/", label: "Ana sayfa", tone: "neutral" },
             { href: "/report/analysis", label: "Analiz", tone: "success" },
             { href: "/report/intelligence", label: "İleri analiz", tone: "primary" },
+            { href: "/report/export", label: "PDF raporu", tone: "neutral" },
+            { href: "/api/export/excel", label: "Excel indir", tone: "neutral" },
             { href: "/price-check", label: "Fiyat kontrolü", tone: "neutral" },
           ]}
         />

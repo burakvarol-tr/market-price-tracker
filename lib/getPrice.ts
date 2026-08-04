@@ -16,6 +16,7 @@ export type TrackedProduct = {
   market: MarketName;
   priceMode?: "UNIT" | "CASE";
   unitsPerCase?: number;
+  manualImageUrl?: string;
 };
 
 export type LivePriceProduct = TrackedProduct & {
@@ -130,7 +131,7 @@ export async function getA101ProductBySku(
     currentPrice: parsed.currentPrice,
     priceText: parsed.priceText,
     inStock: parsed.inStock,
-    imageUrl: parsed.imageUrl,
+    imageUrl: parsed.imageUrl || product.manualImageUrl || null,
     raw: data,
   };
 }

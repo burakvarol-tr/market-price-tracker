@@ -1,6 +1,38 @@
 import { getCatalogImage } from "./productCatalog";
 
+const A101_LOCAL_SKUS = [
+  "13001667",
+  "13001951",
+  "13001952",
+  "13001953",
+  "13001955",
+  "13001958",
+  "13001960",
+  "13001964",
+  "13001966",
+  "13002151",
+  "13002152",
+  "13002275",
+  "13002291",
+  "13002505",
+  "13002601",
+  "13002974",
+  "13003002",
+  "13003003",
+  "13003004",
+  "13003005",
+  "13003074",
+  "13003075",
+  "13003076",
+  "18002851",
+  "20000792",
+  "20001516",
+] as const;
+
 const LOCAL_PRODUCT_IMAGES: Record<string, string> = {
+  ...Object.fromEntries(
+    A101_LOCAL_SKUS.map((sku) => [sku, `/products/a101/${sku}.webp`])
+  ),
   "30509958": "/products/carrefour/30509958.svg",
   "30510027": "/products/carrefour/30510027.svg",
   "30510076": "/products/carrefour/30510076.svg",
@@ -11,4 +43,8 @@ const LOCAL_PRODUCT_IMAGES: Record<string, string> = {
 
 export function getFixedProductImage(sku: string): string | null {
   return LOCAL_PRODUCT_IMAGES[sku] ?? getCatalogImage(sku);
+}
+
+export function hasLocalProductImage(sku: string): boolean {
+  return Boolean(LOCAL_PRODUCT_IMAGES[sku]);
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getLatestPrices } from "@/lib/firestorePrices";
+import { getLatestPrices } from "@/lib/firestorePricesSafe";
 import MarketLogo from "@/components/MarketLogo";
 
 export const dynamic = "force-dynamic";

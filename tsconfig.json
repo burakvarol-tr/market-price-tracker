@@ -19,6 +19,7 @@
       }
     ],
     "paths": {
+      "@/lib/firestorePrices": ["./lib/firestorePricesSafe.ts"],
       "@/*": ["./*"]
     }
   },

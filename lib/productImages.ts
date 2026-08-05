@@ -1,34 +1,50 @@
-export const PRODUCT_IMAGE_MAP: Record<string, string> = {
-  "13002152":
-    "https://www.a101.com.tr/kapida/su-icecek/dooy-sihirli-ejderha-meyveli-icecek-200-ml_p-13002152",
-  "13002151":
-    "https://www.a101.com.tr/kapida/su-icecek/dooy-safari-meyveleri-meyveli-icecek-200-ml-_p-13002151",
-  "13002601":
-    "https://www.a101.com.tr/kapida/su-icecek/dooy-karpuz-cilek-meyveli-icecek-200-ml_p-13002601",
-  "13001966":
-    "https://www.a101.com.tr/kapida/su-icecek/dooy-visne-meyve-nektari-200-ml_p-13001966",
-  "13001960":
-    "https://www.a101.com.tr/kapida/su-icecek/dooy-seftali-meyve-nektari-200-ml_p-13001960",
-  "13001952":
-    "https://www.a101.com.tr/kapida/su-icecek/dooy-karisik-meyve-nektari-200-ml_p-13001952",
-  "13001955":
-    "https://www.a101.com.tr/kapida/su-icecek/dooy-kayisi-meyve-nektari-200-ml_p-13001955",
-  "13001964":
-    "https://www.a101.com.tr/kapida/su-icecek/dooy-visne-meyve-nektari-1-l_p-13001964",
-  "13001953":
-    "https://www.a101.com.tr/kapida/su-icecek/dooy-kayisi-meyve-nektari-1-l_p-13001953",
-  "13001958":
-    "https://www.a101.com.tr/kapida/su-icecek/dooy-seftali-meyve-nektari-1-l_p-13001958",
-  "13001667":
-    "https://www.a101.com.tr/kapida/su-icecek/dooy-ananas-meyve-aromali-icecek-1-l_p-13001667",
-  "13001951":
-    "https://www.a101.com.tr/kapida/su-icecek/dooy-karisik-meyve-nektari-1-l_p-13001951",
-  "13002505":
-    "https://www.a101.com.tr/kapida/su-icecek/dooy-sari-meyveli-meyve-suyu-100-6x200-ml_p-13002505",
-  "13002974":
-    "https://www.a101.com.tr/kapida/su-icecek/ustad-organik-100-portakal-suyu-1-l-_p-13002974",
+import { getCatalogImage } from "./productCatalog";
+
+const A101_LOCAL_SKUS = [
+  "13001667",
+  "13001951",
+  "13001952",
+  "13001953",
+  "13001955",
+  "13001958",
+  "13001960",
+  "13001964",
+  "13001966",
+  "13002151",
+  "13002152",
+  "13002275",
+  "13002291",
+  "13002505",
+  "13002601",
+  "13002974",
+  "13003002",
+  "13003003",
+  "13003004",
+  "13003005",
+  "13003074",
+  "13003075",
+  "13003076",
+  "18002851",
+  "20000792",
+  "20001516",
+] as const;
+
+const LOCAL_PRODUCT_IMAGES: Record<string, string> = {
+  ...Object.fromEntries(
+    A101_LOCAL_SKUS.map((sku) => [sku, `/products/a101/${sku}.webp`])
+  ),
+  "30509958": "/products/carrefour/30509958.svg",
+  "30510027": "/products/carrefour/30510027.svg",
+  "30510076": "/products/carrefour/30510076.svg",
+  "30510077": "/products/carrefour/30510077.svg",
+  "30511967": "/products/carrefour/30511967.svg",
+  "30512090": "/products/carrefour/30512090.svg",
 };
 
 export function getFixedProductImage(sku: string): string | null {
-  return PRODUCT_IMAGE_MAP[sku] ?? null;
+  return LOCAL_PRODUCT_IMAGES[sku] ?? getCatalogImage(sku);
+}
+
+export function hasLocalProductImage(sku: string): boolean {
+  return Boolean(LOCAL_PRODUCT_IMAGES[sku]);
 }

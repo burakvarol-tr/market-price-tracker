@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { db } from "./firebaseAdmin";
 import { getProductCategory, type ProductCategory } from "./productCategory";
 import type { MarketName } from "./getPrice";
@@ -24,35 +25,54 @@ function numberOrNull(value: unknown): number | null {
   return Number(value.toFixed(2));
 }
 
-export async function getRecentAnalyticsHistory(days = 30): Promise<AnalyticsHistoryItem[]> {
+async function readRecentAnalyticsHistory(days: number): Promise<AnalyticsHistoryItem[]> {
   const firestore = ensureDb();
   const start = new Date();
   start.setDate(start.getDate() - days);
+  const startIso = start.toISOString();
 
-  const snap = await firestore.collection("price_history").get();
+  const snap = await firestore
+    .collection("price_history")
+    .where("checkedAt", ">=", startIso)
+    .orderBy("checkedAt", "desc")
+    .limit(2000)
+    .get();
 
-  return snap.docs
-    .map((doc) => {
-      const data = doc.data();
-      const checkedAt = String(data.checkedAt ?? "");
-      const name = String(data.name ?? "");
-      return {
-        sku: String(data.sku ?? ""),
-        name,
-        market: (data.market ?? "A101") as MarketName,
-        category: getProductCategory(name),
-        price: numberOrNull(data.price),
-        previousPrice: numberOrNull(data.previousPrice),
-        changePercent: numberOrNull(data.changePercent),
-        checkedAt,
-        eventType: typeof data.eventType === "string" ? data.eventType : undefined,
-      };
-    })
-    .filter((item) => {
-      const time = new Date(item.checkedAt).getTime();
-      return Number.isFinite(time) && time >= start.getTime();
-    })
-    .sort((a, b) => new Date(b.checkedAt).getTime() - new Date(a.checkedAt).getTime());
+  return snap.docs.map((doc) => {
+    const data = doc.data();
+    const checkedAt = String(data.checkedAt ?? "");
+    const name = String(data.name ?? "");
+
+    return {
+      sku: String(data.sku ?? ""),
+      name,
+      market: (data.market ?? "A101") as MarketName,
+      category: getProductCategory(name),
+      price: numberOrNull(data.price),
+      previousPrice: numberOrNull(data.previousPrice),
+      changePercent: numberOrNull(data.changePercent),
+      checkedAt,
+      eventType: typeof data.eventType === "string" ? data.eventType : undefined,
+    };
+  });
+}
+
+const getCached30DayHistory = unstable_cache(
+  () => readRecentAnalyticsHistory(30),
+  ["analytics-history-30d-v2"],
+  { revalidate: 900 }
+);
+
+const getCached90DayHistory = unstable_cache(
+  () => readRecentAnalyticsHistory(90),
+  ["analytics-history-90d-v2"],
+  { revalidate: 1800 }
+);
+
+export async function getRecentAnalyticsHistory(days = 30): Promise<AnalyticsHistoryItem[]> {
+  if (days <= 30) return getCached30DayHistory();
+  if (days <= 90) return getCached90DayHistory();
+  return readRecentAnalyticsHistory(Math.min(days, 120));
 }
 
 export function isPriceChange(item: AnalyticsHistoryItem) {

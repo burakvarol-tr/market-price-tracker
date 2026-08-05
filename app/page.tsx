@@ -46,20 +46,16 @@ export default async function HomePage() {
 
   const marketSummaries = markets.map((market) => {
     const marketItems = items.filter((item) => item.market === market);
-    const changedToday = marketItems.filter(isChangedToday).length;
-    const unreadable = marketItems.filter((item) => item.currentPrice === null).length;
-
     return {
       market,
       total: marketItems.length,
-      changedToday,
-      unreadable,
-      lastUpdated: Math.max(...marketItems.map((item) => new Date(item.updatedAt).getTime())),
+      changedToday: marketItems.filter(isChangedToday).length,
+      unreadable: marketItems.filter((item) => item.currentPrice === null).length,
     };
   });
 
   const lastUpdated = items.length
-    ? new Date(Math.max(...items.map((item) => new Date(item.updatedAt).getTime()))).toLocaleString("tr-TR")
+    ? new Date(Math.max(...items.map((item) => new Date(item.updatedAt).getTime()))).toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" })
     : "-";
 
   const executiveSummary = todayChangedItems.length > 0
@@ -73,7 +69,9 @@ export default async function HomePage() {
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/60 to-transparent" />
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[linear-gradient(135deg,#2563EB,#1D4ED8)] text-sm font-bold shadow-lg shadow-blue-950/40">GR</div>
+              <div className="flex h-11 w-[118px] items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.035] px-3">
+                <img src="/brand/goknur-white.svg" alt="Göknur" className="h-auto w-full" />
+              </div>
               <div>
                 <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-300">Göknur Retail Intelligence</div>
                 <h1 className="text-lg font-semibold tracking-[-0.02em] text-white">Market Fiyat Takibi</h1>
@@ -91,15 +89,13 @@ export default async function HomePage() {
 
         <section className="mb-4 grid gap-3 xl:grid-cols-[1.15fr_0.85fr]">
           <div className="relative overflow-hidden rounded-xl border border-white/[0.08] bg-[radial-gradient(circle_at_top_right,rgba(37,99,235,0.16),transparent_34%),linear-gradient(135deg,#0E1A2C_0%,#0A1322_100%)] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.18)]">
-            <div className="max-w-3xl">
-              <span className="inline-flex rounded-md border border-blue-400/15 bg-blue-500/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-300">Yönetici görünümü</span>
-              <h2 className="mt-3 text-2xl font-semibold tracking-[-0.035em] md:text-[32px]">Bugünün fiyat ve erişim özeti</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">{executiveSummary}</p>
-            </div>
+            <span className="inline-flex rounded-md border border-blue-400/15 bg-blue-500/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-300">Yönetici görünümü</span>
+            <h2 className="mt-3 text-2xl font-semibold tracking-[-0.035em] md:text-[32px]">Bugünün fiyat ve erişim özeti</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">{executiveSummary}</p>
 
             <div className="mt-5 grid grid-cols-2 gap-2 md:grid-cols-4">
               {[["Toplam ürün", items.length, "text-white"], ["Bugün değişen", todayChangedItems.length, "text-emerald-300"], ["Okunamayan", unreadableItems.length, "text-amber-300"], ["Aktif market", markets.length, "text-blue-300"]].map(([label, value, color]) => (
-                <div key={String(label)} className="rounded-lg border border-white/[0.07] bg-black/10 px-3 py-3 backdrop-blur-sm">
+                <div key={String(label)} className="rounded-lg border border-white/[0.07] bg-black/10 px-3 py-3">
                   <div className="text-[10px] uppercase tracking-[0.12em] text-slate-600">{label}</div>
                   <div className={`mt-1 text-xl font-semibold ${color}`}>{value}</div>
                 </div>
@@ -133,9 +129,8 @@ export default async function HomePage() {
         <section className="overflow-hidden rounded-xl border border-white/[0.08] bg-[#0C1626] shadow-[0_20px_50px_rgba(0,0,0,0.16)]">
           <div className="flex items-center justify-between border-b border-white/[0.07] px-4 py-3">
             <div><h2 className="text-sm font-semibold text-slate-100">Bugünkü fiyat hareketleri</h2><p className="text-[10px] text-slate-600">Yalnızca bugün kaydedilen yeni değişiklikler</p></div>
-            <Link href="/report" className="rounded-md border border-white/[0.07] px-2.5 py-1.5 text-[10px] font-medium text-slate-400 transition hover:bg-white/[0.04] hover:text-slate-200">Tüm rapor</Link>
+            <Link href="/report" className="rounded-md border border-white/[0.07] px-2.5 py-1.5 text-[10px] font-medium text-slate-400">Tüm rapor</Link>
           </div>
-
           {todayChangedItems.length > 0 ? (
             <div className="divide-y divide-white/[0.055]">
               {todayChangedItems.slice(0, 5).map((item) => (
@@ -147,9 +142,7 @@ export default async function HomePage() {
               ))}
             </div>
           ) : (
-            <div className="flex min-h-[118px] items-center justify-center px-4 text-center">
-              <div><div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full border border-emerald-400/15 bg-emerald-400/[0.06] text-emerald-300">✓</div><p className="text-sm font-medium text-slate-300">Bugün yeni fiyat değişikliği yok</p><p className="mt-1 text-[11px] text-slate-600">Son kontrol tamamlandı, yeni hareket tespit edilmedi.</p></div>
-            </div>
+            <div className="flex min-h-[118px] items-center justify-center px-4 text-center text-sm text-slate-400">Bugün yeni fiyat değişikliği yok.</div>
           )}
         </section>
       </div>

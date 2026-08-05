@@ -14,7 +14,7 @@ export default function SafeProductImage({
   src,
   alt,
   className = "h-16 w-16 rounded-2xl",
-  imageClassName = "h-full w-full scale-[1.12] object-contain transition-transform duration-300 group-hover:scale-[1.18]",
+  imageClassName = "h-full w-full scale-[1.22] object-contain transition-transform duration-300 group-hover:scale-[1.28]",
   placeholderText = "Görsel yok",
 }: Props) {
   const [failed, setFailed] = useState(false);

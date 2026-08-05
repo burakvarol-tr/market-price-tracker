@@ -1,4 +1,6 @@
-const LOCAL_IMAGE_VERSION = "20260804-2";
+const LOCAL_IMAGE_VERSION = "20260805-1";
+
+const LOCAL_ONLY_MARKETS = new Set(["A101", "CARREFOUR", "BIZIM"]);
 
 export function getLocalProductImage(market: string, sku: string): string | null {
   const encodedSku = encodeURIComponent(sku.trim());
@@ -11,6 +13,10 @@ export function getLocalProductImage(market: string, sku: string): string | null
     return `/products/carrefour/${encodedSku}.svg?v=${LOCAL_IMAGE_VERSION}`;
   }
 
+  if (market === "BIZIM") {
+    return `/products/bizim/${encodedSku}.webp?v=${LOCAL_IMAGE_VERSION}`;
+  }
+
   return null;
 }
 
@@ -19,5 +25,10 @@ export function resolveProductImage(
   sku: string,
   remoteImageUrl?: string | null
 ): string | null {
-  return getLocalProductImage(market, sku) ?? remoteImageUrl ?? null;
+  const localImage = getLocalProductImage(market, sku);
+
+  if (localImage) return localImage;
+  if (LOCAL_ONLY_MARKETS.has(market)) return null;
+
+  return remoteImageUrl ?? null;
 }

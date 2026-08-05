@@ -7,6 +7,7 @@ export type ProductCategory =
   | "Smoothie"
   | "Sos"
   | "Kuruyemiş"
+  | "Meyve ve Sebze"
   | "Diğer";
 
 export function getProductCategory(name: string): ProductCategory {
@@ -15,6 +16,9 @@ export function getProductCategory(name: string): ProductCategory {
   if (value.includes("smoothie")) return "Smoothie";
   if (value.includes("limonata")) return "Limonata";
   if (value.includes("nar ekşisi") || value.includes("sos")) return "Sos";
+  if (value.includes("sarımsak") || value.includes("soğan") || value.includes("havuç file")) {
+    return "Meyve ve Sebze";
+  }
   if (value.includes("ceviz") || value.includes("fındık") || value.includes("badem")) {
     return "Kuruyemiş";
   }
@@ -24,7 +28,14 @@ export function getProductCategory(name: string): ProductCategory {
     value.includes("fullmix") ||
     value.includes("meyveli içecek") ||
     value.includes("meyve aromalı içecek") ||
-    (value.includes("meyveli") && value.includes("içecek"))
+    value.includes("karışık meyveli içecek") ||
+    (value.includes("içecek") &&
+      (value.includes("meyve") ||
+        value.includes("elma") ||
+        value.includes("portakal") ||
+        value.includes("mandalina") ||
+        value.includes("ananas") ||
+        value.includes("havuç")))
   ) {
     return "Meyveli İçecek";
   }

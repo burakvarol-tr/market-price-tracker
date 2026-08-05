@@ -71,12 +71,7 @@ function StockBadge({ item }: { item: PriceRecord }) {
   );
 }
 
-export default function ReportExplorer({
-  initialItems,
-  initialMarket = "",
-  highlightedSkus = [],
-  priceHistoryMap = {},
-}: Props) {
+export default function ReportExplorer({ initialItems, initialMarket = "", highlightedSkus = [], priceHistoryMap = {} }: Props) {
   const [query, setQuery] = useState("");
   const [market, setMarket] = useState(initialMarket);
   const [category, setCategory] = useState("");
@@ -88,10 +83,7 @@ export default function ReportExplorer({
 
   const highlightedSet = useMemo(() => new Set(highlightedSkus), [highlightedSkus]);
   const markets = useMemo(() => Array.from(new Set(initialItems.map((item) => item.market))), [initialItems]);
-  const categories = useMemo(
-    () => Array.from(new Set(initialItems.map((item) => getProductCategory(item.name)))).sort((a, b) => a.localeCompare(b, "tr")),
-    [initialItems]
-  );
+  const categories = useMemo(() => Array.from(new Set(initialItems.map((item) => getProductCategory(item.name)))).sort((a, b) => a.localeCompare(b, "tr")), [initialItems]);
 
   const items = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase("tr-TR");
@@ -111,15 +103,11 @@ export default function ReportExplorer({
     });
   }, [initialItems, market, category, onlyChanged, onlyOutOfStock, onlyUnreadable, onlyWithoutImage, query, sort]);
 
-  const changedCount = items.filter(isChangedToday).length;
-  const outOfStockCount = items.filter(isOutOfStock).length;
-  const unreadableCount = items.filter(isUnreadable).length;
-
   const filterButtons = [
-    { label: "Bugün değişen", active: onlyChanged, toggle: () => setOnlyChanged((v) => !v) },
-    { label: "Stok dışı", active: onlyOutOfStock, toggle: () => setOnlyOutOfStock((v) => !v) },
-    { label: "Okunamayan", active: onlyUnreadable, toggle: () => setOnlyUnreadable((v) => !v) },
-    { label: "Görselsiz", active: onlyWithoutImage, toggle: () => setOnlyWithoutImage((v) => !v) },
+    { label: "Bugün değişen", active: onlyChanged, toggle: () => setOnlyChanged((value) => !value) },
+    { label: "Stok dışı", active: onlyOutOfStock, toggle: () => setOnlyOutOfStock((value) => !value) },
+    { label: "Okunamayan", active: onlyUnreadable, toggle: () => setOnlyUnreadable((value) => !value) },
+    { label: "Görselsiz", active: onlyWithoutImage, toggle: () => setOnlyWithoutImage((value) => !value) },
   ];
 
   return (
@@ -128,131 +116,63 @@ export default function ReportExplorer({
         <div className="grid grid-cols-2 divide-x divide-white/[0.07] md:grid-cols-5">
           {[
             ["Gösterilen", items.length, "text-white"],
-            ["Bugün değişen", changedCount, "text-emerald-300"],
-            ["Stok dışı", outOfStockCount, "text-rose-300"],
-            ["Okunamayan", unreadableCount, "text-amber-300"],
+            ["Bugün değişen", items.filter(isChangedToday).length, "text-emerald-300"],
+            ["Stok dışı", items.filter(isOutOfStock).length, "text-rose-300"],
+            ["Okunamayan", items.filter(isUnreadable).length, "text-amber-300"],
             ["Market", market || "Tümü", "text-blue-300"],
           ].map(([label, value, color]) => (
             <div key={String(label)} className="px-4 py-3">
               <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</div>
-              <div className={`mt-1 text-lg font-semibold tracking-[-0.02em] ${color}`}>{value}</div>
+              <div className={`mt-1 text-lg font-semibold ${color}`}>{value}</div>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="mb-4 rounded-xl border border-white/[0.08] bg-[#0C1626] p-3 shadow-[0_18px_40px_rgba(0,0,0,0.16)]">
+      <section className="mb-4 rounded-xl border border-white/[0.08] bg-[#0C1626] p-3">
         <div className="grid gap-2 xl:grid-cols-[1.35fr_0.62fr_0.72fr_0.72fr]">
-          <div className="relative">
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-600">⌕</span>
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ürün adı veya SKU ile ara" className="h-10 w-full rounded-lg border border-white/[0.08] bg-[#08111F] pl-9 pr-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-blue-400/40 focus:ring-2 focus:ring-blue-500/10" />
-          </div>
-          <select value={market} onChange={(e) => setMarket(e.target.value)} className="h-10 rounded-lg border border-white/[0.08] bg-[#08111F] px-3 text-sm text-white outline-none focus:border-blue-400/40">
-            <option value="">Tüm marketler</option>
-            {markets.map((marketItem) => <option key={marketItem} value={marketItem}>{marketItem}</option>)}
-          </select>
-          <select value={category} onChange={(e) => setCategory(e.target.value)} className="h-10 rounded-lg border border-white/[0.08] bg-[#08111F] px-3 text-sm text-white outline-none focus:border-blue-400/40">
-            <option value="">Tüm kategoriler</option>
-            {categories.map((categoryItem) => <option key={categoryItem} value={categoryItem}>{categoryItem}</option>)}
-          </select>
-          <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} className="h-10 rounded-lg border border-white/[0.08] bg-[#08111F] px-3 text-sm text-white outline-none focus:border-blue-400/40">
-            <option value="market">Markete göre</option>
-            <option value="name">Ürün adına göre</option>
-            <option value="price-asc">Fiyat: düşükten yükseğe</option>
-            <option value="price-desc">Fiyat: yüksekten düşüğe</option>
-            <option value="change-desc">En yüksek değişim</option>
-            <option value="updated-desc">Son güncelleme</option>
-          </select>
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Ürün adı veya SKU ile ara" className="h-10 rounded-lg border border-white/[0.08] bg-[#08111F] px-3 text-sm text-white outline-none placeholder:text-slate-600" />
+          <select value={market} onChange={(event) => setMarket(event.target.value)} className="h-10 rounded-lg border border-white/[0.08] bg-[#08111F] px-3 text-sm text-white"><option value="">Tüm marketler</option>{markets.map((item) => <option key={item} value={item}>{item}</option>)}</select>
+          <select value={category} onChange={(event) => setCategory(event.target.value)} className="h-10 rounded-lg border border-white/[0.08] bg-[#08111F] px-3 text-sm text-white"><option value="">Tüm kategoriler</option>{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select>
+          <select value={sort} onChange={(event) => setSort(event.target.value as SortKey)} className="h-10 rounded-lg border border-white/[0.08] bg-[#08111F] px-3 text-sm text-white"><option value="market">Markete göre</option><option value="name">Ürün adına göre</option><option value="price-asc">Fiyat: düşükten yükseğe</option><option value="price-desc">Fiyat: yüksekten düşüğe</option><option value="change-desc">En yüksek değişim</option><option value="updated-desc">Son güncelleme</option></select>
         </div>
         <div className="mt-2 flex flex-wrap gap-2 border-t border-white/[0.06] pt-2">
-          {filterButtons.map((filter) => (
-            <button key={filter.label} type="button" onClick={filter.toggle} className={`rounded-full border px-3 py-1.5 text-[11px] font-medium transition ${filter.active ? "border-blue-400/30 bg-blue-500/15 text-blue-200 shadow-[0_0_18px_rgba(59,130,246,0.08)]" : "border-white/[0.08] bg-white/[0.025] text-slate-400 hover:-translate-y-px hover:bg-white/[0.06] hover:text-slate-200"}`}>
-              {filter.label}
-            </button>
-          ))}
+          {filterButtons.map((filter) => <button key={filter.label} type="button" onClick={filter.toggle} className={`rounded-full border px-3 py-1.5 text-[11px] ${filter.active ? "border-blue-400/30 bg-blue-500/15 text-blue-200" : "border-white/[0.08] text-slate-400"}`}>{filter.label}</button>)}
         </div>
       </section>
 
       <section>
-        <div className="mb-2 flex items-center justify-between gap-4">
-          <div>
-            <h2 className="text-base font-semibold text-slate-100">Ürün listesi</h2>
-            <p className="text-[11px] text-slate-500">Güncel fiyat, kategori, mini trend ve erişim durumu</p>
-          </div>
-          <div className="rounded-md border border-white/[0.07] bg-white/[0.025] px-2.5 py-1 text-[11px] text-slate-500">{items.length} kayıt</div>
-        </div>
+        <div className="mb-2 flex items-center justify-between"><div><h2 className="text-base font-semibold text-slate-100">Ürün listesi</h2><p className="text-[11px] text-slate-500">Güncel fiyat, kategori, mini trend ve erişim durumu</p></div><div className="rounded-md border border-white/[0.07] px-2.5 py-1 text-[11px] text-slate-500">{items.length} kayıt</div></div>
 
         <div className="space-y-2 md:hidden">
           {items.map((item) => {
+            const href = `/report/detail?sku=${encodeURIComponent(item.sku)}`;
             const hasChange = item.previousPrice !== null && item.previousPrice !== item.currentPrice;
-            return (
-              <Link key={`${item.market}-${item.sku}`} href={`/report/detail?sku=${encodeURIComponent(item.sku)}`} className={`block rounded-xl border border-white/[0.08] px-3 py-2.5 ${highlightedSet.has(item.sku) ? "bg-emerald-500/[0.08]" : "bg-[#0C1626]"}`}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex min-w-0 items-start gap-2.5">
-                    <SafeProductImage src={item.imageUrl} alt={item.name} className="h-12 w-12 rounded-lg" />
-                    <div className="min-w-0">
-                      <div className="line-clamp-2 text-[13px] font-semibold">{item.name}</div>
-                      <div className="mt-0.5 text-[10px] text-slate-500">SKU {item.sku} · {getProductCategory(item.name)}</div>
-                      <div className="mt-1.5 flex gap-2"><MarketLogo market={item.market} compact /><StockBadge item={item} /></div>
-                    </div>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <div className="text-sm font-semibold">{formatPrice(item.currentPrice)}</div>
-                    <MiniSparkline values={priceHistoryMap[item.sku] ?? []} />
-                    <div className="mt-1 text-[10px] text-slate-400">{formatPercent(item.changePercent, hasChange)}</div>
-                  </div>
-                </div>
-              </Link>
-            );
+            return <Link key={`${item.market}-${item.sku}`} href={href} className="block rounded-xl border border-white/[0.08] bg-[#0C1626] px-3 py-2.5"><div className="flex items-start justify-between gap-3"><div className="flex min-w-0 gap-2.5"><SafeProductImage src={item.imageUrl} alt={item.name} className="h-12 w-12 rounded-lg" /><div><div className="line-clamp-2 text-[13px] font-semibold">{item.name}</div><div className="text-[10px] text-slate-500">SKU {item.sku} · {getProductCategory(item.name)}</div><div className="mt-1.5 flex gap-2"><MarketLogo market={item.market} compact /><StockBadge item={item} /></div></div></div><div className="text-right"><div className="text-sm font-semibold">{formatPrice(item.currentPrice)}</div><MiniSparkline values={priceHistoryMap[item.sku] ?? []} /><div className="text-[10px] text-slate-400">{formatPercent(item.changePercent, hasChange)}</div></div></div></Link>;
           })}
         </div>
 
-        <div className="hidden overflow-hidden rounded-xl border border-white/[0.08] bg-[#0C1626] shadow-[0_24px_60px_rgba(0,0,0,0.18)] md:block">
+        <div className="hidden overflow-hidden rounded-xl border border-white/[0.08] bg-[#0C1626] md:block">
           <div className="overflow-x-auto">
             <table className="min-w-full text-[12px]">
-              <thead className="sticky top-0 z-10 bg-[#111C2D] text-left text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500">
-                <tr>
-                  <th className="w-12 px-3 py-2.5">#</th>
-                  <th className="px-3 py-2.5">Ürün</th>
-                  <th className="px-3 py-2.5">Market</th>
-                  <th className="px-3 py-2.5 text-center">Trend</th>
-                  <th className="px-3 py-2.5 text-right">Önceki</th>
-                  <th className="px-3 py-2.5 text-right">Güncel</th>
-                  <th className="px-3 py-2.5 text-center">Değişim</th>
-                  <th className="px-3 py-2.5 text-center">Durum</th>
-                  <th className="w-16 px-3 py-2.5 text-center">Detay</th>
-                </tr>
-              </thead>
+              <thead className="bg-[#111C2D] text-left text-[10px] uppercase tracking-[0.1em] text-slate-500"><tr><th className="w-12 px-3 py-2.5">#</th><th className="px-3 py-2.5">Ürün</th><th className="px-3 py-2.5">Market</th><th className="px-3 py-2.5 text-center">Trend</th><th className="px-3 py-2.5 text-right">Önceki</th><th className="px-3 py-2.5 text-right">Güncel</th><th className="px-3 py-2.5 text-center">Değişim</th><th className="px-3 py-2.5 text-center">Durum</th><th className="w-16 px-3 py-2.5 text-center">Detay</th></tr></thead>
               <tbody>
                 {items.map((item, index) => {
+                  const href = `/report/detail?sku=${encodeURIComponent(item.sku)}`;
                   const hasChange = item.previousPrice !== null && item.previousPrice !== item.currentPrice;
                   const positive = hasChange && (item.changePercent ?? 0) > 0;
                   const negative = hasChange && (item.changePercent ?? 0) < 0;
                   return (
                     <tr key={`${item.market}-${item.sku}`} className={`border-t border-white/[0.055] transition hover:bg-white/[0.025] ${highlightedSet.has(item.sku) ? "bg-emerald-500/[0.05]" : index % 2 === 1 ? "bg-white/[0.012]" : ""}`}>
                       <td className="px-3 py-2 text-slate-600">{String(index + 1).padStart(2, "0")}</td>
-                      <td className="px-3 py-2">
-                        <div className="flex min-w-[300px] items-center gap-3">
-                          <SafeProductImage src={item.imageUrl} alt={item.name} className="h-10 w-10 rounded-md" />
-                          <div>
-                            <div className="max-w-[390px] font-medium leading-5 text-slate-100">{item.name}</div>
-                            <div className="text-[10px] text-slate-600">SKU {item.sku} · {getProductCategory(item.name)}</div>
-                          </div>
-                        </div>
-                      </td>
+                      <td className="px-3 py-2"><Link href={href} className="group flex min-w-[300px] items-center gap-3"><SafeProductImage src={item.imageUrl} alt={item.name} className="h-10 w-10 rounded-md" /><div><div className="max-w-[390px] font-medium leading-5 text-slate-100 transition group-hover:text-blue-300">{item.name}</div><div className="text-[10px] text-slate-600">SKU {item.sku} · {getProductCategory(item.name)}</div></div></Link></td>
                       <td className="px-3 py-2"><MarketLogo market={item.market} compact /></td>
                       <td className="px-3 py-2"><div className="flex justify-center"><MiniSparkline values={priceHistoryMap[item.sku] ?? []} /></div></td>
-                      <td className="px-3 py-2 text-right tabular-nums text-slate-500">{formatPrice(item.previousPrice)}</td>
-                      <td className="px-3 py-2 text-right font-semibold tabular-nums text-slate-100">{formatPrice(item.currentPrice)}</td>
-                      <td className="px-3 py-2 text-center">
-                        <span className={`inline-flex min-w-[58px] justify-center rounded-md border px-2 py-1 text-[10px] font-semibold ${positive ? "border-emerald-400/15 bg-emerald-400/[0.08] text-emerald-300" : negative ? "border-rose-400/15 bg-rose-400/[0.08] text-rose-300" : "border-white/[0.06] bg-white/[0.025] text-slate-500"}`}>
-                          {formatPercent(item.changePercent, hasChange)}
-                        </span>
-                      </td>
+                      <td className="px-3 py-2 text-right text-slate-500">{formatPrice(item.previousPrice)}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-slate-100">{formatPrice(item.currentPrice)}</td>
+                      <td className="px-3 py-2 text-center"><span className={`inline-flex min-w-[58px] justify-center rounded-md border px-2 py-1 text-[10px] font-semibold ${positive ? "border-emerald-400/15 bg-emerald-400/[0.08] text-emerald-300" : negative ? "border-rose-400/15 bg-rose-400/[0.08] text-rose-300" : "border-white/[0.06] text-slate-500"}`}>{formatPercent(item.changePercent, hasChange)}</span></td>
                       <td className="px-3 py-2 text-center"><StockBadge item={item} /></td>
-                      <td className="px-3 py-2 text-center">
-                        <Link href={`/report/detail?sku=${encodeURIComponent(item.sku)}`} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-blue-400/15 bg-blue-500/[0.08] text-blue-300 transition hover:bg-blue-500/15">→</Link>
-                      </td>
+                      <td className="px-3 py-2 text-center"><Link href={href} className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-blue-400/15 bg-blue-500/[0.08] text-blue-300">→</Link></td>
                     </tr>
                   );
                 })}
@@ -260,7 +180,6 @@ export default function ReportExplorer({
             </table>
           </div>
         </div>
-
         {!items.length && <div className="rounded-xl border border-white/[0.08] bg-[#0C1626] px-4 py-10 text-center text-sm text-slate-500">Filtrelere uygun ürün bulunamadı.</div>}
       </section>
     </>

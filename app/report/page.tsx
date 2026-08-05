@@ -1,4 +1,4 @@
-import { getLatestPrices } from "@/lib/firestorePrices";
+import { getLatestPrices } from "@/lib/firestorePricesSafe";
 import { getRecentAnalyticsHistory } from "@/lib/analyticsData";
 import { resolveProductImage } from "@/lib/localProductImages";
 import ReportExplorer from "@/components/ReportExplorer";
@@ -20,7 +20,7 @@ export default async function ReportPage({
 
   const [rawItems, recentHistory] = await Promise.all([
     getLatestPrices(),
-    getRecentAnalyticsHistory(240),
+    getRecentAnalyticsHistory(30),
   ]);
 
   const allItems = rawItems.map((item) => ({

@@ -1,4 +1,5 @@
 export type ProductCategory =
+  | "%100 Meyve Suyu"
   | "Meyve Suyu"
   | "Meyve Nektarı"
   | "Meyveli İçecek"
@@ -17,12 +18,18 @@ export function getProductCategory(name: string): ProductCategory {
   if (value.includes("ceviz") || value.includes("fındık") || value.includes("badem")) {
     return "Kuruyemiş";
   }
+  if (value.includes("%100")) return "%100 Meyve Suyu";
   if (value.includes("nektar")) return "Meyve Nektarı";
-  if (value.includes("%100") || value.includes("meyve suyu") || value.includes("elma suyu")) {
-    return "Meyve Suyu";
-  }
-  if (value.includes("meyveli içecek") || value.includes("meyve aromalı içecek")) {
+  if (
+    value.includes("fullmix") ||
+    value.includes("meyveli içecek") ||
+    value.includes("meyve aromalı içecek") ||
+    (value.includes("meyveli") && value.includes("içecek"))
+  ) {
     return "Meyveli İçecek";
+  }
+  if (value.includes("meyve suyu") || value.includes("elma suyu")) {
+    return "Meyve Suyu";
   }
 
   return "Diğer";

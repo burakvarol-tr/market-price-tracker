@@ -36,6 +36,24 @@ export default async function ReportPage({
     return map;
   }, {});
 
+  for (const item of allItems) {
+    const values = priceHistoryMap[item.sku] ?? [];
+    const fallback: number[] = [];
+
+    if (item.previousPrice !== null && Number.isFinite(item.previousPrice)) {
+      fallback.push(item.previousPrice);
+    }
+    if (item.currentPrice !== null && Number.isFinite(item.currentPrice)) {
+      fallback.push(item.currentPrice);
+    }
+
+    if (values.length < 2 && fallback.length >= 2 && fallback[0] !== fallback[1]) {
+      priceHistoryMap[item.sku] = fallback;
+    } else if (values.length === 0 && fallback.length === 1) {
+      priceHistoryMap[item.sku] = fallback;
+    }
+  }
+
   return (
     <main className="min-h-screen bg-[#07101D] text-white">
       <div className="mx-auto max-w-[1540px] px-4 py-4 md:px-6 md:py-5">

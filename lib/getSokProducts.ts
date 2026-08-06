@@ -41,30 +41,38 @@ function stripHtml(value: string): string {
     .replace(/&quot;/g, '"')
     .replace(/&#x27;/g, "'")
     .replace(/&amp;/g, "&")
+    .replace(/&nbsp;/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
-function parseSokPriceFromHtml(html: string): {
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function parseSokPriceFromHtml(
+  html: string,
+  productName: string
+): {
   currentPrice: number | null;
   priceText: string;
 } {
   const text = stripHtml(html);
 
-  const productTitleMatch = text.match(
-    /Mis\s+[^0-9]{3,120}?(?:200\s*ml|1\s*L)/i
-  );
-
-  const titleIndex = productTitleMatch?.index ?? -1;
-
+  // Önce takip edilen ürünün kendi başlığını bulup yalnızca hemen sonrasındaki
+  // alanı tarıyoruz. Böylece sayfanın altındaki "İlgili Ürünler" fiyatları
+  // yanlışlıkla ana ürün fiyatı olarak alınmıyor.
+  const titlePattern = new RegExp(escapeRegExp(productName), "i");
+  const titleMatch = titlePattern.exec(text);
+  const titleIndex = titleMatch?.index ?? -1;
   const searchArea =
-    titleIndex >= 0 ? text.slice(titleIndex, titleIndex + 500) : text;
+    titleIndex >= 0
+      ? text.slice(titleIndex, titleIndex + Math.max(350, productName.length + 220))
+      : text.slice(0, 1200);
 
   const priceMatch =
     searchArea.match(/([0-9]{1,4},[0-9]{2})\s*₺/i) ||
-    searchArea.match(/([0-9]{1,4},[0-9]{2})\s*TL/i) ||
-    text.match(/([0-9]{1,4},[0-9]{2})\s*₺/i) ||
-    text.match(/([0-9]{1,4},[0-9]{2})\s*TL/i);
+    searchArea.match(/([0-9]{1,4},[0-9]{2})\s*TL/i);
 
   if (!priceMatch?.[1]) {
     return {
@@ -151,7 +159,7 @@ export async function getSokProductBySku(
 
     const html = await res.text();
 
-    const parsedPrice = parseSokPriceFromHtml(html);
+    const parsedPrice = parseSokPriceFromHtml(html, product.name);
     const imageUrl = parseSokImageFromHtml(html);
     const productCode = parseSokProductCodeFromHtml(html);
 

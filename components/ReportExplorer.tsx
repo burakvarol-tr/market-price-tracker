@@ -61,11 +61,11 @@ function compareNullableNumber(a: number | null, b: number | null, direction: 1 
 
 function StockBadge({ item }: { item: PriceRecord }) {
   if (isUnreadable(item)) {
-    return <span className="inline-flex rounded-md border border-amber-400/15 bg-amber-400/[0.08] px-2 py-1 text-[10px] font-semibold text-amber-300">Okunamadı</span>;
+    return <span className="inline-flex rounded-md border border-amber-400/15 bg-amber-400/[0.08] px-1.5 py-0.5 text-[9px] font-semibold text-amber-300 sm:px-2 sm:py-1 sm:text-[10px]">Okunamadı</span>;
   }
 
   return (
-    <span className={`inline-flex rounded-md border px-2 py-1 text-[10px] font-semibold ${item.inStock ? "border-emerald-400/15 bg-emerald-400/[0.08] text-emerald-300" : "border-rose-400/15 bg-rose-400/[0.08] text-rose-300"}`}>
+    <span className={`inline-flex rounded-md border px-1.5 py-0.5 text-[9px] font-semibold sm:px-2 sm:py-1 sm:text-[10px] ${item.inStock ? "border-emerald-400/15 bg-emerald-400/[0.08] text-emerald-300" : "border-rose-400/15 bg-rose-400/[0.08] text-rose-300"}`}>
       {item.inStock ? "Stokta" : "Stok dışı"}
     </span>
   );
@@ -112,18 +112,18 @@ export default function ReportExplorer({ initialItems, initialMarket = "", highl
 
   return (
     <>
-      <section className="mb-3 overflow-hidden rounded-xl border border-white/[0.08] bg-[#0C1626]">
-        <div className="grid grid-cols-4 divide-x divide-white/[0.07] md:grid-cols-5">
+      <section className="mb-3 hidden overflow-hidden rounded-xl border border-white/[0.08] bg-[#0C1626] md:block">
+        <div className="grid grid-cols-5 divide-x divide-white/[0.07]">
           {[
             ["Gösterilen", items.length, "text-white"],
             ["Bugün değişen", items.filter(isChangedToday).length, "text-emerald-300"],
             ["Stok dışı", items.filter(isOutOfStock).length, "text-rose-300"],
             ["Okunamayan", items.filter(isUnreadable).length, "text-amber-300"],
             ["Market", market || "Tümü", "text-blue-300"],
-          ].map(([label, value, color], index) => (
-            <div key={String(label)} className={`${index === 4 ? "hidden md:block" : ""} min-w-0 px-2 py-2.5 sm:px-4 sm:py-3`}>
-              <div className="truncate text-[8px] font-semibold uppercase tracking-[0.09em] text-slate-500 sm:text-[10px] sm:tracking-[0.12em]">{label}</div>
-              <div className={`mt-1 truncate text-base font-semibold sm:text-lg ${color}`}>{value}</div>
+          ].map(([label, value, color]) => (
+            <div key={String(label)} className="min-w-0 px-4 py-3">
+              <div className="truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">{label}</div>
+              <div className={`mt-1 truncate text-lg font-semibold ${color}`}>{value}</div>
             </div>
           ))}
         </div>
@@ -131,39 +131,42 @@ export default function ReportExplorer({ initialItems, initialMarket = "", highl
 
       <section className="mb-3 rounded-xl border border-white/[0.08] bg-[#0C1626] p-2.5 sm:mb-4 sm:p-3">
         <div className="grid grid-cols-2 gap-2 xl:grid-cols-[1.35fr_0.62fr_0.72fr_0.72fr]">
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Ürün adı veya SKU ile ara" className="col-span-2 h-10 min-w-0 rounded-lg border border-white/[0.08] bg-[#08111F] px-3 text-[13px] text-white outline-none placeholder:text-slate-600 xl:col-span-1 xl:text-sm" />
-          <select value={market} onChange={(event) => setMarket(event.target.value)} className="h-10 min-w-0 rounded-lg border border-white/[0.08] bg-[#08111F] px-2.5 text-[12px] text-white sm:px-3 sm:text-sm"><option value="">Tüm marketler</option>{markets.map((item) => <option key={item} value={item}>{item}</option>)}</select>
-          <select value={category} onChange={(event) => setCategory(event.target.value)} className="h-10 min-w-0 rounded-lg border border-white/[0.08] bg-[#08111F] px-2.5 text-[12px] text-white sm:px-3 sm:text-sm"><option value="">Tüm kategoriler</option>{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select>
-          <select value={sort} onChange={(event) => setSort(event.target.value as SortKey)} className="col-span-2 h-10 min-w-0 rounded-lg border border-white/[0.08] bg-[#08111F] px-2.5 text-[12px] text-white sm:px-3 sm:text-sm xl:col-span-1"><option value="market">Markete göre</option><option value="name">Ürün adına göre</option><option value="price-asc">Fiyat: düşükten yükseğe</option><option value="price-desc">Fiyat: yüksekten düşüğe</option><option value="change-desc">En yüksek değişim</option><option value="updated-desc">Son güncelleme</option></select>
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Ürün adı veya SKU ile ara" className="col-span-2 h-9 min-w-0 rounded-lg border border-white/[0.08] bg-[#08111F] px-3 text-[12px] text-white outline-none placeholder:text-slate-600 sm:h-10 sm:text-sm xl:col-span-1" />
+          <select value={market} onChange={(event) => setMarket(event.target.value)} className="h-9 min-w-0 rounded-lg border border-white/[0.08] bg-[#08111F] px-2 text-[11px] text-white sm:h-10 sm:px-3 sm:text-sm"><option value="">Tüm marketler</option>{markets.map((item) => <option key={item} value={item}>{item}</option>)}</select>
+          <select value={category} onChange={(event) => setCategory(event.target.value)} className="h-9 min-w-0 rounded-lg border border-white/[0.08] bg-[#08111F] px-2 text-[11px] text-white sm:h-10 sm:px-3 sm:text-sm"><option value="">Tüm kategoriler</option>{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select>
+          <select value={sort} onChange={(event) => setSort(event.target.value as SortKey)} className="col-span-2 h-9 min-w-0 rounded-lg border border-white/[0.08] bg-[#08111F] px-2 text-[11px] text-white sm:h-10 sm:px-3 sm:text-sm xl:col-span-1"><option value="market">Markete göre</option><option value="name">Ürün adına göre</option><option value="price-asc">Fiyat: düşükten yükseğe</option><option value="price-desc">Fiyat: yüksekten düşüğe</option><option value="change-desc">En yüksek değişim</option><option value="updated-desc">Son güncelleme</option></select>
         </div>
-        <div className="mt-2 flex gap-2 overflow-x-auto border-t border-white/[0.06] pt-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:overflow-visible">
-          {filterButtons.map((filter) => <button key={filter.label} type="button" onClick={filter.toggle} className={`shrink-0 rounded-full border px-3 py-1.5 text-[11px] ${filter.active ? "border-blue-400/30 bg-blue-500/15 text-blue-200" : "border-white/[0.08] text-slate-400"}`}>{filter.label}</button>)}
+        <div className="mt-2 flex gap-1.5 overflow-x-auto border-t border-white/[0.06] pt-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap sm:gap-2 sm:overflow-visible">
+          {filterButtons.map((filter) => <button key={filter.label} type="button" onClick={filter.toggle} className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] sm:px-3 sm:py-1.5 sm:text-[11px] ${filter.active ? "border-blue-400/30 bg-blue-500/15 text-blue-200" : "border-white/[0.08] text-slate-400"}`}>{filter.label}</button>)}
         </div>
       </section>
 
       <section>
-        <div className="mb-2 flex items-end justify-between gap-3"><div className="min-w-0"><h2 className="text-base font-semibold text-slate-100">Ürün listesi</h2><p className="truncate text-[10px] text-slate-500 sm:text-[11px]">Güncel fiyat, kategori, mini trend ve erişim durumu</p></div><div className="shrink-0 rounded-md border border-white/[0.07] px-2.5 py-1 text-[11px] text-slate-500">{items.length} kayıt</div></div>
+        <div className="mb-2 flex items-end justify-between gap-3">
+          <div className="min-w-0"><h2 className="text-[15px] font-semibold text-slate-100 sm:text-base">Ürün listesi</h2><p className="truncate text-[9px] text-slate-500 sm:text-[11px]">Güncel fiyat, kategori, mini trend ve erişim durumu</p></div>
+          <div className="shrink-0 rounded-md border border-white/[0.07] px-2 py-1 text-[10px] text-slate-500 sm:px-2.5 sm:text-[11px]">{items.length} kayıt</div>
+        </div>
 
-        <div className="space-y-2 md:hidden">
+        <div className="space-y-1.5 md:hidden">
           {items.map((item) => {
             const href = `/report/detail?sku=${encodeURIComponent(item.sku)}`;
             const hasChange = item.previousPrice !== null && item.previousPrice !== item.currentPrice;
             return (
-              <Link key={`${item.market}-${item.sku}`} href={href} className="block rounded-xl border border-white/[0.08] bg-[#0C1626] px-3 py-2.5">
-                <div className="grid grid-cols-[52px_minmax(0,1fr)_92px] gap-2.5">
-                  <SafeProductImage src={item.imageUrl} alt={item.name} className="h-[52px] w-[52px] rounded-lg" />
+              <Link key={`${item.market}-${item.sku}`} href={href} className="block rounded-lg border border-white/[0.08] bg-[#0C1626] px-2.5 py-2">
+                <div className="grid grid-cols-[44px_minmax(0,1fr)_78px] items-start gap-2">
+                  <SafeProductImage src={item.imageUrl} alt={item.name} className="h-11 w-11 rounded-md" />
                   <div className="min-w-0">
-                    <div className="line-clamp-2 text-[13px] font-semibold leading-[18px] text-slate-100">{item.name}</div>
-                    <div className="mt-0.5 truncate text-[10px] text-slate-500">SKU {item.sku} · {getProductCategory(item.name)}</div>
-                    <div className="mt-1.5 flex items-center gap-1.5">
-                      <div className="min-w-0 origin-left scale-[0.88]"><MarketLogo market={item.market} compact /></div>
+                    <div className="line-clamp-2 text-[12px] font-semibold leading-4 text-slate-100">{item.name}</div>
+                    <div className="mt-0.5 truncate text-[9px] text-slate-500">{item.sku} · {getProductCategory(item.name)}</div>
+                    <div className="mt-1 flex items-center gap-1">
+                      <div className="min-w-0 origin-left scale-[0.76]"><MarketLogo market={item.market} compact /></div>
                       <StockBadge item={item} />
                     </div>
                   </div>
                   <div className="flex min-w-0 flex-col items-end text-right">
-                    <div className="text-[14px] font-semibold leading-5 text-white">{formatPrice(item.currentPrice)}</div>
-                    <div className="mt-0.5 origin-right scale-[0.82]"><MiniSparkline values={priceHistoryMap[item.sku] ?? []} /></div>
-                    <div className="mt-auto text-[10px] text-slate-400">{formatPercent(item.changePercent, hasChange)}</div>
+                    <div className="text-[12px] font-semibold leading-4 text-white">{formatPrice(item.currentPrice)}</div>
+                    <div className="mt-0.5 origin-right scale-[0.68]"><MiniSparkline values={priceHistoryMap[item.sku] ?? []} /></div>
+                    <div className="mt-auto text-[9px] text-slate-400">{formatPercent(item.changePercent, hasChange)}</div>
                   </div>
                 </div>
               </Link>

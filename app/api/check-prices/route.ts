@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { PRODUCTS } from "@/data/products";
 import { getProductsByMarket } from "@/lib/getPrice";
 import {
@@ -36,6 +37,12 @@ export async function GET() {
       liveProducts,
       previousMap
     );
+
+    revalidateTag("latest-prices", { expire: 0 });
+    revalidatePath("/");
+    revalidatePath("/report");
+    revalidatePath("/report/analysis");
+    revalidatePath("/report/intelligence");
 
     const groupedByMarket = changedProducts.reduce<
       Record<string, typeof changedProducts>

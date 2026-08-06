@@ -83,11 +83,11 @@ export default async function AnalysisPage() {
 
   const executiveSummary = todayChangedItems.length
     ? `Bugün ${todayChangedItems.length} üründe fiyat değişikliği tespit edildi. ${gainers.length} ürünün fiyatı arttı, ${decliners.length} ürünün fiyatı düştü.`
-    : `Bugün yeni fiyat değişikliği tespit edilmedi. ${unreadable.length} ürünün verisi okunamadı, ${outOfStock.length} ürün stok dışı görünüyor.`;
+    : `Bugün fiyat değişmedi · ${unreadable.length} ürün okunamadı · ${outOfStock.length} ürün stok dışı`;
 
   return (
-    <main className="min-h-screen bg-[#07101D] text-white">
-      <div className="mx-auto max-w-[1540px] px-4 py-4 md:px-6 md:py-5">
+    <main className="min-h-screen overflow-x-hidden bg-[#07101D] text-white">
+      <div className="mx-auto max-w-[1540px] px-3 pb-24 pt-3 sm:px-4 sm:py-4 md:px-6 md:py-5">
         <DashboardHeader
           eyebrow="FİYAT ANALİZİ"
           title="Fiyat ve stok analizi"
@@ -99,12 +99,29 @@ export default async function AnalysisPage() {
           ]}
         />
 
-        <section className="mb-4 rounded-[18px] border border-blue-400/15 bg-[linear-gradient(135deg,rgba(30,64,175,0.14),rgba(15,23,42,0.38))] px-4 py-3.5 shadow-[0_18px_45px_rgba(0,0,0,0.16)]">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-blue-300">Yönetici özeti</div>
-          <p className="mt-1.5 text-sm leading-6 text-slate-200">{executiveSummary}</p>
+        <section className="mb-3 rounded-xl border border-blue-400/15 bg-[linear-gradient(135deg,rgba(30,64,175,0.14),rgba(15,23,42,0.38))] px-3 py-2.5 shadow-[0_18px_45px_rgba(0,0,0,0.16)] sm:mb-4 sm:rounded-[18px] sm:px-4 sm:py-3.5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-[9px] font-semibold uppercase tracking-[0.13em] text-blue-300 sm:text-[10px] sm:tracking-[0.14em]">Yönetici özeti</div>
+            <span className="text-[10px] text-slate-500 sm:hidden">Bugünkü durum</span>
+          </div>
+          <p className="mt-1 text-[11px] leading-5 text-slate-300 sm:mt-1.5 sm:text-sm sm:leading-6">{executiveSummary}</p>
         </section>
 
-        <section className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-5">
+        <section className="mb-3 grid grid-cols-4 overflow-hidden rounded-xl border border-white/[0.08] bg-[#0C1626] md:hidden">
+          {[
+            ["Ürün", items.length, "text-white"],
+            ["Değişen", todayChangedItems.length, "text-emerald-300"],
+            ["Okunamayan", unreadable.length, "text-amber-300"],
+            ["Market", markets.length, "text-blue-300"],
+          ].map(([label, value, color], index) => (
+            <div key={String(label)} className={`min-w-0 px-2 py-2.5 text-center ${index > 0 ? "border-l border-white/[0.07]" : ""}`}>
+              <div className={`text-[20px] font-semibold leading-none ${color}`}>{value}</div>
+              <div className="mt-1.5 truncate text-[7px] uppercase tracking-[0.09em] text-slate-600">{label}</div>
+            </div>
+          ))}
+        </section>
+
+        <section className="mb-5 hidden grid-cols-2 gap-3 md:grid md:grid-cols-5">
           <MetricCard label="Toplam ürün" value={items.length} />
           <MetricCard label="Bugün değişen" value={todayChangedItems.length} tone="positive" />
           <MetricCard label="Stok dışı" value={outOfStock.length} tone="negative" />
@@ -112,12 +129,41 @@ export default async function AnalysisPage() {
           <MetricCard label="Aktif market" value={markets.length} tone="info" />
         </section>
 
-        <section className="mb-5 overflow-hidden rounded-[18px] border border-white/[0.085] bg-white/[0.03] shadow-[0_16px_40px_rgba(0,0,0,0.15)]">
-          <div className="border-b border-white/[0.08] px-4 py-3.5">
-            <h2 className="font-semibold tracking-[-0.01em]">Market özeti</h2>
-            <p className="mt-0.5 text-[11px] text-slate-500">Bugünkü değişim ve güncel erişim görünümü</p>
+        <section className="mb-3 overflow-hidden rounded-xl border border-white/[0.085] bg-white/[0.03] shadow-[0_16px_40px_rgba(0,0,0,0.15)] sm:mb-5 sm:rounded-[18px]">
+          <div className="border-b border-white/[0.08] px-3 py-3 sm:px-4 sm:py-3.5">
+            <h2 className="text-sm font-semibold tracking-[-0.01em] sm:text-base">Market özeti</h2>
+            <p className="mt-0.5 text-[10px] text-slate-500 sm:text-[11px]">Bugünkü değişim ve güncel erişim görünümü</p>
           </div>
-          <div className="overflow-x-auto">
+
+          <div className="divide-y divide-white/[0.07] md:hidden">
+            {marketSummary.map((item) => (
+              <div key={item.market} className="px-3 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <MarketLogo market={item.market} compact />
+                  <div className="text-right">
+                    <div className="text-sm font-semibold text-white">{item.total} ürün</div>
+                    <div className="text-[10px] text-slate-500">Ort. {formatPrice(item.averagePrice)}</div>
+                  </div>
+                </div>
+                <div className="mt-2 grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded-lg border border-white/[0.06] bg-black/10 px-2 py-1.5">
+                    <div className="text-[8px] uppercase tracking-[0.08em] text-slate-600">Değişen</div>
+                    <div className="mt-0.5 text-sm font-semibold text-emerald-300">{item.changedToday}</div>
+                  </div>
+                  <div className="rounded-lg border border-white/[0.06] bg-black/10 px-2 py-1.5">
+                    <div className="text-[8px] uppercase tracking-[0.08em] text-slate-600">Stok dışı</div>
+                    <div className="mt-0.5 text-sm font-semibold text-rose-300">{item.outOfStock}</div>
+                  </div>
+                  <div className="rounded-lg border border-white/[0.06] bg-black/10 px-2 py-1.5">
+                    <div className="text-[8px] uppercase tracking-[0.08em] text-slate-600">Okunamayan</div>
+                    <div className="mt-0.5 text-sm font-semibold text-amber-300">{item.unreadable}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden overflow-x-auto md:block">
             <table className="min-w-full text-[13px]">
               <thead className="bg-white/[0.035] text-left text-xs text-slate-400">
                 <tr><th className="px-4 py-3">Market</th><th className="px-4 py-3">Ürün</th><th className="px-4 py-3">Bugün değişen</th><th className="px-4 py-3">Stok dışı</th><th className="px-4 py-3">Okunamayan</th><th className="px-4 py-3">Ort. fiyat</th></tr>
@@ -138,7 +184,7 @@ export default async function AnalysisPage() {
           </div>
         </section>
 
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid gap-3 sm:gap-4 lg:grid-cols-2">
           <MovementList title="Bugün fiyatı artanlar" items={gainers} positive />
           <MovementList title="Bugün fiyatı düşenler" items={decliners} positive={false} />
         </div>
@@ -149,19 +195,24 @@ export default async function AnalysisPage() {
 
 function MovementList({ title, items, positive }: { title: string; items: Awaited<ReturnType<typeof getLatestPrices>>; positive: boolean }) {
   return (
-    <section className="overflow-hidden rounded-[18px] border border-white/[0.085] bg-white/[0.03] shadow-[0_16px_40px_rgba(0,0,0,0.14)]">
-      <div className="border-b border-white/[0.08] px-4 py-3.5"><h2 className="font-semibold tracking-[-0.01em]">{title}</h2></div>
+    <section className="overflow-hidden rounded-xl border border-white/[0.085] bg-white/[0.03] shadow-[0_16px_40px_rgba(0,0,0,0.14)] sm:rounded-[18px]">
+      <div className="border-b border-white/[0.08] px-3 py-3 sm:px-4 sm:py-3.5"><h2 className="text-sm font-semibold tracking-[-0.01em] sm:text-base">{title}</h2></div>
       <div className="divide-y divide-white/[0.07]">
         {items.map((item) => (
-          <Link key={`${item.market}-${item.sku}`} href={`/report/detail?sku=${encodeURIComponent(item.sku)}`} className="flex items-center justify-between gap-4 px-4 py-3 transition hover:bg-white/[0.025]">
+          <Link key={`${item.market}-${item.sku}`} href={`/report/detail?sku=${encodeURIComponent(item.sku)}`} className="flex items-center justify-between gap-4 px-3 py-3 transition hover:bg-white/[0.025] sm:px-4">
             <div className="min-w-0">
-              <div className="truncate text-sm font-medium">{item.name}</div>
-              <div className="mt-0.5 text-[11px] text-slate-500">{item.market} · {formatPrice(item.currentPrice)} · {formatMovementDate(item.lastChangedAt)}</div>
+              <div className="truncate text-xs font-medium sm:text-sm">{item.name}</div>
+              <div className="mt-0.5 truncate text-[10px] text-slate-500 sm:text-[11px]">{item.market} · {formatPrice(item.currentPrice)} · {formatMovementDate(item.lastChangedAt)}</div>
             </div>
-            <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${positive ? "bg-emerald-400/10 text-emerald-300" : "bg-rose-400/10 text-rose-300"}`}>{formatPercent(item.changePercent)}</span>
+            <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold sm:text-xs ${positive ? "bg-emerald-400/10 text-emerald-300" : "bg-rose-400/10 text-rose-300"}`}>{formatPercent(item.changePercent)}</span>
           </Link>
         ))}
-        {!items.length && <div className="px-4 py-10 text-center text-sm text-slate-400">Bugün bu yönde bir fiyat hareketi yok.</div>}
+        {!items.length && (
+          <div className="flex items-center gap-2 px-3 py-3 text-[11px] text-slate-400 sm:px-4 sm:py-4 sm:text-sm">
+            <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full ${positive ? "bg-emerald-400/10 text-emerald-300" : "bg-rose-400/10 text-rose-300"}`}>✓</span>
+            Bugün bu yönde fiyat hareketi yok.
+          </div>
+        )}
       </div>
     </section>
   );

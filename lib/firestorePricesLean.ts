@@ -5,6 +5,7 @@ import type { PriceRecord } from "./firestorePrices";
 import { getFixedProductImage } from "./productImages";
 
 const COLLECTION_LATEST = "latest_prices";
+const MAX_REASONABLE_CHANGE_PERCENT = 40;
 
 function normalizePrice(value: unknown): number | null {
   if (value === null || value === undefined) return null;
@@ -19,6 +20,11 @@ function normalizePrice(value: unknown): number | null {
   return Number((parsed >= 1000 ? parsed / 100 : parsed).toFixed(2));
 }
 
+function calculateChangePercent(previousPrice: number | null, currentPrice: number | null) {
+  if (previousPrice === null || currentPrice === null || previousPrice === 0) return null;
+  return Number((((currentPrice - previousPrice) / previousPrice) * 100).toFixed(2));
+}
+
 async function readLatestPricesLean(): Promise<PriceRecord[]> {
   if (!db) {
     throw new Error("Firestore bağlantısı yok. Env değerlerini kontrol et.");
@@ -31,7 +37,17 @@ async function readLatestPricesLean(): Promise<PriceRecord[]> {
       const data = doc.data();
       const sku = String(data.sku ?? doc.id);
       const currentPrice = normalizePrice(data.currentPrice);
-      const previousPrice = normalizePrice(data.previousPrice);
+      const rawPreviousPrice = normalizePrice(data.previousPrice);
+      const calculatedChange = calculateChangePercent(rawPreviousPrice, currentPrice);
+      const suspicious =
+        calculatedChange !== null &&
+        Math.abs(calculatedChange) > MAX_REASONABLE_CHANGE_PERCENT;
+      const previousPrice = suspicious ? null : rawPreviousPrice;
+      const changePercent = suspicious
+        ? null
+        : typeof data.changePercent === "number"
+          ? data.changePercent
+          : calculatedChange;
 
       return {
         sku,
@@ -39,14 +55,21 @@ async function readLatestPricesLean(): Promise<PriceRecord[]> {
         market: (data.market ?? "A101") as MarketName,
         currentPrice,
         previousPrice,
-        changed: previousPrice !== null && currentPrice !== null && previousPrice !== currentPrice,
-        changePercent:
-          typeof data.changePercent === "number" ? data.changePercent : null,
+        changed:
+          !suspicious &&
+          previousPrice !== null &&
+          currentPrice !== null &&
+          previousPrice !== currentPrice,
+        changePercent,
         inStock: Boolean(data.inStock),
         updatedAt: String(data.updatedAt ?? data.lastCheckedAt ?? ""),
         lastCheckedAt: String(data.lastCheckedAt ?? data.updatedAt ?? ""),
         lastChangedAt:
-          typeof data.lastChangedAt === "string" ? data.lastChangedAt : null,
+          suspicious
+            ? null
+            : typeof data.lastChangedAt === "string"
+              ? data.lastChangedAt
+              : null,
         source: String(data.source ?? data.market ?? ""),
         imageUrl:
           typeof data.imageUrl === "string" && data.imageUrl.trim()
@@ -62,7 +85,7 @@ async function readLatestPricesLean(): Promise<PriceRecord[]> {
 
 const getCachedLatestPrices = unstable_cache(
   readLatestPricesLean,
-  ["latest-prices-lean-v3"],
+  ["latest-prices-lean-v4"],
   { revalidate: 600, tags: ["latest-prices"] }
 );
 

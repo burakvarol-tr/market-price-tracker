@@ -62,8 +62,8 @@ async function readLatestPricesLean(): Promise<PriceRecord[]> {
 
 const getCachedLatestPrices = unstable_cache(
   readLatestPricesLean,
-  ["latest-prices-lean-v2"],
-  { revalidate: 600 }
+  ["latest-prices-lean-v3"],
+  { revalidate: 600, tags: ["latest-prices"] }
 );
 
 export async function getLatestPricesLean(options?: { market?: string }) {

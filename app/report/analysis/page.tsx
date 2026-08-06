@@ -55,7 +55,9 @@ export default async function AnalysisPage() {
   );
   const unreadable = items.filter((item) => item.currentPrice === null);
   const outOfStock = items.filter((item) => item.currentPrice !== null && !item.inStock);
-  const markets = Array.from(new Set(items.map((item) => item.market)));
+  const markets = Array.from(new Set(items.map((item) => item.market))).sort((a, b) =>
+    a.localeCompare(b, "tr")
+  );
 
   const gainers = [...todayChangedItems]
     .filter((item) => (item.changePercent ?? 0) > 0)

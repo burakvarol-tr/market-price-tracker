@@ -10,20 +10,6 @@ const assets: Record<string, string> = {
   CARREFOUR: "/markets/carrefour.svg",
 };
 
-const compactImageSize: Record<string, string> = {
-  A101: "h-auto w-[72px]",
-  BIZIM: "h-auto w-[58px]",
-  CARREFOUR: "h-auto w-[70px]",
-  SOK: "h-auto w-[48px]",
-};
-
-const regularImageSize: Record<string, string> = {
-  A101: "h-auto w-[88px]",
-  BIZIM: "h-auto w-[72px]",
-  CARREFOUR: "h-auto w-[86px]",
-  SOK: "h-auto w-[60px]",
-};
-
 export default function MarketLogo({ market, compact = false }: Props) {
   const src = assets[market];
 
@@ -31,7 +17,9 @@ export default function MarketLogo({ market, compact = false }: Props) {
     return (
       <span
         className={`inline-flex shrink-0 items-center justify-center rounded-lg border border-white/10 bg-slate-700 px-2 font-black text-white ${
-          compact ? "h-9 w-[92px] text-[9px]" : "h-12 w-28 text-xs"
+          compact
+            ? "h-9 w-[92px] text-[9px] sm:h-10 sm:w-[104px]"
+            : "h-12 w-28 text-xs sm:h-14 sm:w-32"
         }`}
       >
         {market}
@@ -43,16 +31,18 @@ export default function MarketLogo({ market, compact = false }: Props) {
     <span
       title={market}
       className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-white shadow-sm ${
-        compact ? "h-9 w-[92px] px-2" : "h-12 w-28 px-2.5"
+        compact
+          ? "h-9 w-[92px] px-2 sm:h-10 sm:w-[104px] sm:px-2.5"
+          : "h-12 w-28 px-2.5 sm:h-14 sm:w-32 sm:px-3"
       }`}
     >
       <img
         src={src}
         alt={`${market} logosu`}
-        className={`max-h-full max-w-full object-contain ${
+        className={`block object-contain ${
           compact
-            ? compactImageSize[market] ?? "h-auto w-[68px]"
-            : regularImageSize[market] ?? "h-auto w-[84px]"
+            ? "h-6 w-[76px] sm:h-7 sm:w-[88px]"
+            : "h-8 w-[92px] sm:h-9 sm:w-[104px]"
         }`}
       />
     </span>

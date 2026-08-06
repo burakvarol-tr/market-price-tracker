@@ -6,13 +6,30 @@ import DashboardHeader from "@/components/DashboardHeader";
 
 export const dynamic = "force-dynamic";
 
+function dateKeyInTurkey(value?: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Istanbul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+function changedToday(value?: string | null) {
+  return Boolean(value) && dateKeyInTurkey(value) === dateKeyInTurkey(new Date().toISOString());
+}
+
 export default async function ReportPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ market?: string; changed?: string }>;
+  searchParams?: Promise<{ market?: string; changed?: string; status?: string }>;
 }) {
   const resolved = searchParams ? await searchParams : {};
   const market = resolved?.market || "";
+  const status = resolved?.status || "";
   const highlightedSkus = (resolved?.changed || "")
     .split(",")
     .map((value) => value.trim())
@@ -23,10 +40,17 @@ export default async function ReportPage({
     getRecentAnalyticsHistory(30),
   ]);
 
-  const allItems = rawItems.map((item) => ({
-    ...item,
-    imageUrl: resolveProductImage(item.market, item.sku, item.imageUrl),
-  }));
+  const allItems = rawItems
+    .map((item) => ({
+      ...item,
+      imageUrl: resolveProductImage(item.market, item.sku, item.imageUrl),
+    }))
+    .filter((item) => {
+      if (status === "changed") return changedToday(item.lastChangedAt);
+      if (status === "out-of-stock") return item.currentPrice !== null && !item.inStock;
+      if (status === "unreadable") return item.currentPrice === null;
+      return true;
+    });
 
   const priceHistoryMap = recentHistory.reduce<Record<string, number[]>>((map, item) => {
     if (item.price === null || Number.isNaN(item.price)) return map;
@@ -70,6 +94,17 @@ export default async function ReportPage({
             { href: "/price-check", label: "Fiyat kontrolü", tone: "neutral" },
           ]}
         />
+
+        {status && (
+          <div className="mb-3 flex items-center justify-between rounded-xl border border-blue-400/15 bg-blue-500/[0.06] px-3 py-2 text-xs text-blue-200">
+            <span>
+              {status === "changed" && "Bugün değişen ürünler gösteriliyor"}
+              {status === "out-of-stock" && "Stok dışı ürünler gösteriliyor"}
+              {status === "unreadable" && "Verisi okunamayan ürünler gösteriliyor"}
+            </span>
+            <a href={market ? `/report?market=${encodeURIComponent(market)}` : "/report"} className="rounded-md border border-blue-300/20 px-2 py-1 text-[10px]">Filtreyi temizle</a>
+          </div>
+        )}
 
         <ReportExplorer
           initialItems={allItems}

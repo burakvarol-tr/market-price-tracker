@@ -79,53 +79,53 @@ export default async function ProductDetailPage({ searchParams }: { searchParams
   const statusText = unreadable ? "Okunamadı" : latest.inStock ? "Stokta" : "Stok dışı";
 
   return (
-    <main className="min-h-screen bg-[#07101D] text-white">
-      <div className="mx-auto max-w-[1540px] px-4 py-4 md:px-6 md:py-5">
-        <section className="mb-4 overflow-hidden rounded-[20px] border border-white/[0.09] bg-[radial-gradient(circle_at_top_right,rgba(37,99,235,0.18),transparent_34%),linear-gradient(135deg,#0E1A2C_0%,#091321_100%)] shadow-[0_24px_65px_rgba(0,0,0,0.2)]">
+    <main className="min-h-screen overflow-x-hidden bg-[#07101D] text-white">
+      <div className="mx-auto max-w-[1540px] px-3 pb-24 pt-3 sm:px-4 sm:py-4 md:px-6 md:py-5">
+        <section className="mb-3 overflow-hidden rounded-[18px] border border-white/[0.09] bg-[radial-gradient(circle_at_top_right,rgba(37,99,235,0.18),transparent_34%),linear-gradient(135deg,#0E1A2C_0%,#091321_100%)] shadow-[0_24px_65px_rgba(0,0,0,0.2)] sm:mb-4 sm:rounded-[20px]">
           <div className="grid items-stretch lg:grid-cols-[1fr_210px]">
-            <div className="px-5 py-5 md:px-6">
+            <div className="px-4 py-4 sm:px-5 sm:py-5 md:px-6">
               <div className="flex flex-wrap items-center gap-2">
-                <MarketLogo market={latest.market} />
-                <span className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${unreadable ? "border-amber-400/20 bg-amber-500/10 text-amber-300" : latest.inStock ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-300" : "border-rose-400/20 bg-rose-500/10 text-rose-300"}`}>{statusText}</span>
+                <div className="origin-left scale-[0.9] sm:scale-100"><MarketLogo market={latest.market} /></div>
+                <span className={`rounded-full border px-2.5 py-1 text-[10px] font-medium sm:text-[11px] ${unreadable ? "border-amber-400/20 bg-amber-500/10 text-amber-300" : latest.inStock ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-300" : "border-rose-400/20 bg-rose-500/10 text-rose-300"}`}>{statusText}</span>
               </div>
-              <h1 className="mt-4 max-w-5xl text-2xl font-semibold leading-tight tracking-[-0.035em] md:text-[34px]">{latest.name}</h1>
-              <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-slate-400">
+              <h1 className="mt-3 max-w-5xl text-[22px] font-semibold leading-tight tracking-[-0.035em] sm:mt-4 sm:text-2xl md:text-[34px]">{latest.name}</h1>
+              <div className="mt-2 grid gap-1 text-[11px] text-slate-400 sm:mt-3 sm:flex sm:flex-wrap sm:items-center sm:gap-x-5 sm:gap-y-1 sm:text-xs">
                 <span>SKU <strong className="ml-1 font-medium text-slate-200">{latest.sku}</strong></span>
                 <span>Son kontrol <strong className="ml-1 font-medium text-slate-200">{formatDate(latest.lastCheckedAt)}</strong></span>
               </div>
-              <div className="mt-5 flex flex-wrap gap-2">
-                <Link href={`/report?market=${encodeURIComponent(latest.market)}`} className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold transition hover:bg-blue-500">Market raporu</Link>
-                <Link href="/report" className="rounded-lg border border-white/[0.09] bg-white/[0.04] px-4 py-2 text-xs text-slate-300 transition hover:bg-white/[0.08]">Tüm raporlar</Link>
-                {productUrl && <a href={productUrl} target="_blank" rel="noreferrer" className="rounded-lg border border-emerald-400/20 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/15">Markette aç ↗</a>}
+              <div className="mt-4 grid grid-cols-2 gap-2 sm:mt-5 sm:flex sm:flex-wrap">
+                <Link href={`/report?market=${encodeURIComponent(latest.market)}`} className="flex min-h-10 items-center justify-center rounded-lg bg-blue-600 px-3 py-2 text-center text-xs font-semibold transition hover:bg-blue-500 sm:min-h-0 sm:px-4">Market raporu</Link>
+                <Link href="/report" className="flex min-h-10 items-center justify-center rounded-lg border border-white/[0.09] bg-white/[0.04] px-3 py-2 text-center text-xs text-slate-300 transition hover:bg-white/[0.08] sm:min-h-0 sm:px-4">Tüm raporlar</Link>
+                {productUrl && <a href={productUrl} target="_blank" rel="noreferrer" className="col-span-2 flex min-h-10 items-center justify-center rounded-lg border border-emerald-400/20 bg-emerald-500/10 px-3 py-2 text-center text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/15 sm:col-span-1 sm:min-h-0 sm:px-4">Markette aç ↗</a>}
               </div>
             </div>
-            <div className="flex items-center justify-center border-t border-white/[0.08] bg-white/[0.018] p-4 lg:border-l lg:border-t-0">
+            <div className="flex items-center justify-center border-t border-white/[0.08] bg-white/[0.018] p-3 sm:p-4 lg:border-l lg:border-t-0">
               <SafeProductImage
                 src={imageUrl}
                 alt={latest.name}
-                className="h-[178px] w-[148px] rounded-2xl shadow-[0_18px_40px_rgba(0,0,0,0.18)]"
-                imageClassName={`h-full w-full object-contain ${latest.market === "CARREFOUR" ? "scale-[1.28]" : "scale-[1.16]"}`}
+                className="h-[138px] w-[124px] rounded-xl shadow-[0_18px_40px_rgba(0,0,0,0.18)] sm:h-[178px] sm:w-[148px] sm:rounded-2xl"
+                imageClassName={`h-full w-full object-contain ${latest.market === "CARREFOUR" ? "scale-[1.22] sm:scale-[1.28]" : "scale-[1.1] sm:scale-[1.16]"}`}
               />
             </div>
           </div>
         </section>
 
         {unreadable && (
-          <section className="mb-4 rounded-xl border border-amber-400/20 bg-amber-500/[0.055] px-4 py-3 text-sm text-amber-100">
+          <section className="mb-3 rounded-xl border border-amber-400/20 bg-amber-500/[0.055] px-3 py-2.5 text-xs text-amber-100 sm:mb-4 sm:px-4 sm:py-3 sm:text-sm">
             Fiyat ve stok bilgisi şu anda okunamadı. Bu durum ürünün stokta olmadığı anlamına gelmez.
           </section>
         )}
 
-        <section className="mb-4 grid gap-3 md:grid-cols-3">
+        <section className="mb-3 grid grid-cols-3 gap-2 sm:mb-4 sm:gap-3">
           {[["Güncel fiyat", formatPrice(latest.currentPrice)], ["Önceki fiyat", formatPrice(previousPrice)], ["Durum", statusText]].map(([label, value]) => (
-            <div key={String(label)} className="rounded-[16px] border border-white/[0.085] bg-white/[0.028] px-4 py-3.5">
-              <div className="text-[11px] uppercase tracking-[0.08em] text-slate-500">{label}</div>
-              <div className="mt-1.5 text-xl font-semibold">{value}</div>
+            <div key={String(label)} className="min-w-0 rounded-xl border border-white/[0.085] bg-white/[0.028] px-2.5 py-2.5 sm:rounded-[16px] sm:px-4 sm:py-3.5">
+              <div className="truncate text-[8px] uppercase tracking-[0.06em] text-slate-500 sm:text-[11px] sm:tracking-[0.08em]">{label}</div>
+              <div className="mt-1 truncate text-[15px] font-semibold sm:mt-1.5 sm:text-xl">{value}</div>
             </div>
           ))}
         </section>
 
-        <section className="mb-4 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-white/[0.075] bg-black/15 px-4 py-3 text-xs text-slate-400">
+        <section className="mb-3 grid grid-cols-2 gap-x-4 gap-y-2 rounded-xl border border-white/[0.075] bg-black/15 px-3 py-2.5 text-[11px] text-slate-400 sm:mb-4 sm:flex sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2 sm:px-4 sm:py-3 sm:text-xs">
           <span>En düşük <strong className="ml-1 text-slate-100">{formatPrice(minimumPrice)}</strong></span>
           <span>En yüksek <strong className="ml-1 text-slate-100">{formatPrice(maximumPrice)}</strong></span>
           <span>Ortalama <strong className="ml-1 text-slate-100">{formatPrice(averagePrice)}</strong></span>
@@ -133,26 +133,40 @@ export default async function ProductDetailPage({ searchParams }: { searchParams
         </section>
 
         {hasChange && (
-          <section className={`mb-4 rounded-xl border px-4 py-3 text-sm ${(changePercent ?? 0) >= 0 ? "border-emerald-400/15 bg-emerald-500/[0.055]" : "border-rose-400/15 bg-rose-500/[0.055]"}`}>
+          <section className={`mb-3 rounded-xl border px-3 py-2.5 text-xs sm:mb-4 sm:px-4 sm:py-3 sm:text-sm ${(changePercent ?? 0) >= 0 ? "border-emerald-400/15 bg-emerald-500/[0.055]" : "border-rose-400/15 bg-rose-500/[0.055]"}`}>
             <strong>Son değişim</strong><span className="ml-2 text-slate-300">{formatPrice(previousPrice)} → {formatPrice(latest.currentPrice)} · {changePercent !== null ? `${changePercent > 0 ? "+" : ""}${changePercent.toFixed(2)}%` : "-"}</span>
           </section>
         )}
 
-        <section className="mb-4 overflow-hidden rounded-[18px] border border-white/[0.085] bg-white/[0.028]">
-          <div className="flex items-center justify-between border-b border-white/[0.075] px-4 py-3.5">
-            <div><h2 className="font-semibold">Fiyat trendi</h2><p className="text-[11px] text-slate-500">Son 30 fiyat kaydı</p></div>
-            <div className="text-xs text-slate-400">{formatPrice(minimumPrice)} – {formatPrice(maximumPrice)}</div>
+        <section className="mb-3 overflow-hidden rounded-[16px] border border-white/[0.085] bg-white/[0.028] sm:mb-4 sm:rounded-[18px]">
+          <div className="flex items-start justify-between gap-3 border-b border-white/[0.075] px-3 py-3 sm:items-center sm:px-4 sm:py-3.5">
+            <div><h2 className="text-sm font-semibold sm:text-base">Fiyat trendi</h2><p className="text-[10px] text-slate-500 sm:text-[11px]">Son 30 fiyat kaydı</p></div>
+            <div className="text-right text-[10px] text-slate-400 sm:text-xs">{formatPrice(minimumPrice)} – {formatPrice(maximumPrice)}</div>
           </div>
-          <div className="p-4">
-            {chartData.length >= 2 ? <PriceHistoryChart points={chartData} /> : (
-              <div className="flex min-h-[150px] items-center justify-center rounded-xl border border-dashed border-white/[0.09] bg-black/10 text-center text-sm text-slate-400">Henüz fiyat trendi oluşmadı.</div>
+          <div className="p-2.5 sm:p-4">
+            {chartData.length >= 2 ? <div className="h-[240px] sm:h-auto"><PriceHistoryChart points={chartData} /></div> : (
+              <div className="flex min-h-[120px] items-center justify-center rounded-xl border border-dashed border-white/[0.09] bg-black/10 text-center text-sm text-slate-400 sm:min-h-[150px]">Henüz fiyat trendi oluşmadı.</div>
             )}
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-[18px] border border-white/[0.085] bg-white/[0.028]">
-          <div className="border-b border-white/[0.075] px-4 py-3.5"><h2 className="font-semibold">Fiyat geçmişi</h2></div>
-          <div className="overflow-x-auto">
+        <section className="overflow-hidden rounded-[16px] border border-white/[0.085] bg-white/[0.028] sm:rounded-[18px]">
+          <div className="border-b border-white/[0.075] px-3 py-3 sm:px-4 sm:py-3.5"><h2 className="text-sm font-semibold sm:text-base">Fiyat geçmişi</h2></div>
+
+          <div className="divide-y divide-white/[0.07] md:hidden">
+            {history.map((item, index) => (
+              <div key={`${item.sku}-${item.checkedAt}-${index}`} className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 px-3 py-3 text-[11px]">
+                <div className="text-slate-400">{formatDate(item.checkedAt)}</div>
+                <div className="text-right font-semibold text-white">{formatPrice(item.price)}</div>
+                <div className="text-slate-500">Önceki: {formatPrice(item.previousPrice ?? null)}</div>
+                <div className="text-right text-slate-300">{item.changePercent !== null && item.changePercent !== undefined ? `${item.changePercent > 0 ? "+" : ""}${item.changePercent.toFixed(2)}%` : "-"}</div>
+                <div className={`col-span-2 text-[10px] ${item.price === null ? "text-amber-300" : "text-slate-500"}`}>{item.price === null ? "Okunamadı" : item.inStock ? "Stokta" : "Stok dışı"}</div>
+              </div>
+            ))}
+            {!history.length && <div className="px-4 py-10 text-center text-sm text-slate-400">Geçmiş veri yok</div>}
+          </div>
+
+          <div className="hidden overflow-x-auto md:block">
             <table className="min-w-full text-xs">
               <thead className="bg-white/[0.035] text-left text-slate-400"><tr><th className="px-4 py-3">Tarih</th><th className="px-4 py-3">Fiyat</th><th className="px-4 py-3">Önceki</th><th className="px-4 py-3">Değişim</th><th className="px-4 py-3">Durum</th></tr></thead>
               <tbody>

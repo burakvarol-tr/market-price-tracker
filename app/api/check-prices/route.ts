@@ -37,8 +37,10 @@ export async function GET() {
     );
 
     revalidateTag("latest-prices", { expire: 0 });
+    revalidateTag("analytics-history", { expire: 0 });
     revalidatePath("/");
     revalidatePath("/report");
+    revalidatePath("/report/detail");
     revalidatePath("/report/analysis");
     revalidatePath("/report/intelligence");
 

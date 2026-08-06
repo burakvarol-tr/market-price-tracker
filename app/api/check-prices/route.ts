@@ -2,10 +2,8 @@ import { NextResponse } from "next/server";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { PRODUCTS } from "@/data/products";
 import { getProductsByMarket } from "@/lib/getPrice";
-import {
-  readLatestPricesMap,
-  saveCheckedProducts,
-} from "@/lib/firestorePrices";
+import { readLatestPricesMap } from "@/lib/firestorePrices";
+import { saveCheckedProductsSafe } from "@/lib/saveCheckedProductsSafe";
 import { sendPriceChangeEmailByMarket } from "@/lib/sendMail";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +31,7 @@ export async function GET() {
     const previousMap = await readLatestPricesMap();
     const liveProducts = await getProductsByMarket(PRODUCTS);
 
-    const { changedProducts, allSavedProducts } = await saveCheckedProducts(
+    const { changedProducts, allSavedProducts } = await saveCheckedProductsSafe(
       liveProducts,
       previousMap
     );

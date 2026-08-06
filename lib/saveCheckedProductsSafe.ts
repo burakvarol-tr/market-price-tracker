@@ -79,6 +79,15 @@ export async function saveCheckedProductsSafe(
       product.imageUrl ?? previous?.imageUrl ?? null
     );
 
+    if (resetAsBaseline) {
+      const oldHistory = await firestore
+        .collection(COLLECTION_HISTORY)
+        .where("sku", "==", product.sku)
+        .get();
+
+      oldHistory.docs.forEach((historyDoc) => batch.delete(historyDoc.ref));
+    }
+
     const record: PriceRecord = {
       sku: product.sku,
       name: product.name,

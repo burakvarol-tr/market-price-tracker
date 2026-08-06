@@ -62,6 +62,10 @@ export default async function HomePage() {
     ? `Bugün ${items.length} ürün kontrol edildi ve ${todayChangedItems.length} üründe yeni fiyat hareketi tespit edildi.${unreadableItems.length ? ` ${unreadableItems.length} ürünün verisi okunamadı.` : ""}`
     : `Bugün ${items.length} ürün kontrol edildi. Yeni fiyat değişikliği tespit edilmedi.${unreadableItems.length ? ` ${unreadableItems.length} ürünün verisi okunamadı.` : " Tüm ürünlere başarıyla erişildi."}`;
 
+  const mobileSummary = todayChangedItems.length > 0
+    ? `${todayChangedItems.length} üründe bugün fiyat değişti${unreadableItems.length ? ` · ${unreadableItems.length} ürün okunamadı` : ""}`
+    : `Bugün yeni fiyat değişikliği yok${unreadableItems.length ? ` · ${unreadableItems.length} ürün okunamadı` : ""}`;
+
   return (
     <main className="min-h-screen overflow-x-hidden bg-[#07101D] text-white">
       <div className="mx-auto max-w-[1540px] px-3 pb-24 pt-3 sm:px-4 sm:py-4 md:px-6 md:py-5">
@@ -92,17 +96,37 @@ export default async function HomePage() {
 
         <section className="mb-3 grid gap-3 sm:mb-4 xl:grid-cols-[1.15fr_0.85fr]">
           <div className="relative overflow-hidden rounded-xl border border-white/[0.08] bg-[radial-gradient(circle_at_top_right,rgba(37,99,235,0.16),transparent_34%),linear-gradient(135deg,#0E1A2C_0%,#0A1322_100%)] p-3 shadow-[0_24px_60px_rgba(0,0,0,0.18)] sm:p-5">
-            <span className="inline-flex rounded-md border border-blue-400/15 bg-blue-500/[0.08] px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.13em] text-blue-300 sm:px-2.5 sm:py-1 sm:text-[10px]">Yönetici görünümü</span>
-            <h2 className="mt-2 text-[21px] font-semibold leading-[1.12] tracking-[-0.035em] sm:mt-3 sm:text-2xl md:text-[32px]">Bugünün fiyat ve erişim özeti</h2>
-            <p className="mt-1.5 max-w-2xl text-[12px] leading-[18px] text-slate-300 sm:mt-2 sm:text-sm sm:leading-6">{executiveSummary}</p>
+            <div className="sm:hidden">
+              <div className="flex items-center justify-between gap-3">
+                <span className="inline-flex rounded-md border border-blue-400/15 bg-blue-500/[0.08] px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.13em] text-blue-300">Yönetici özeti</span>
+                <span className="text-[9px] text-slate-500">Bugünkü durum</span>
+              </div>
 
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-5 md:grid-cols-4">
-              {[["Toplam ürün", items.length, "text-white"], ["Bugün değişen", todayChangedItems.length, "text-emerald-300"], ["Okunamayan", unreadableItems.length, "text-amber-300"], ["Aktif market", markets.length, "text-blue-300"]].map(([label, value, color]) => (
-                <div key={String(label)} className="min-h-[66px] rounded-lg border border-white/[0.07] bg-black/10 px-2.5 py-2 sm:min-h-0 sm:px-3 sm:py-3">
-                  <div className="text-[8px] uppercase tracking-[0.1em] text-slate-600 sm:text-[10px] sm:tracking-[0.12em]">{label}</div>
-                  <div className={`mt-1.5 text-[22px] font-semibold leading-none sm:mt-1 sm:text-xl ${color}`}>{value}</div>
-                </div>
-              ))}
+              <div className="mt-2 grid grid-cols-4 divide-x divide-white/[0.07] overflow-hidden rounded-lg border border-white/[0.07] bg-black/10">
+                {[["Ürün", items.length, "text-white"], ["Değişen", todayChangedItems.length, "text-emerald-300"], ["Okunamayan", unreadableItems.length, "text-amber-300"], ["Market", markets.length, "text-blue-300"]].map(([label, value, color]) => (
+                  <div key={String(label)} className="min-w-0 px-1.5 py-2 text-center">
+                    <div className={`text-[20px] font-semibold leading-none ${color}`}>{value}</div>
+                    <div className="mt-1 truncate text-[7px] uppercase tracking-[0.08em] text-slate-600">{label}</div>
+                  </div>
+                ))}
+              </div>
+
+              <p className="mt-2 truncate text-[10px] text-slate-400">{mobileSummary}</p>
+            </div>
+
+            <div className="hidden sm:block">
+              <span className="inline-flex rounded-md border border-blue-400/15 bg-blue-500/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.13em] text-blue-300">Yönetici görünümü</span>
+              <h2 className="mt-3 text-2xl font-semibold leading-[1.12] tracking-[-0.035em] md:text-[32px]">Bugünün fiyat ve erişim özeti</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">{executiveSummary}</p>
+
+              <div className="mt-5 grid grid-cols-2 gap-2 md:grid-cols-4">
+                {[["Toplam ürün", items.length, "text-white"], ["Bugün değişen", todayChangedItems.length, "text-emerald-300"], ["Okunamayan", unreadableItems.length, "text-amber-300"], ["Aktif market", markets.length, "text-blue-300"]].map(([label, value, color]) => (
+                  <div key={String(label)} className="rounded-lg border border-white/[0.07] bg-black/10 px-3 py-3">
+                    <div className="text-[10px] uppercase tracking-[0.12em] text-slate-600">{label}</div>
+                    <div className={`mt-1 text-xl font-semibold ${color}`}>{value}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 

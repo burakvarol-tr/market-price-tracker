@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getLatestPrices } from "@/lib/firestorePricesSafe";
 import { getRecentAnalyticsHistory } from "@/lib/analyticsData";
 import { resolveProductImage } from "@/lib/localProductImages";
@@ -40,17 +41,27 @@ export default async function ReportPage({
     getRecentAnalyticsHistory(30),
   ]);
 
-  const allItems = rawItems
-    .map((item) => ({
-      ...item,
-      imageUrl: resolveProductImage(item.market, item.sku, item.imageUrl),
-    }))
-    .filter((item) => {
-      if (status === "changed") return changedToday(item.lastChangedAt);
-      if (status === "out-of-stock") return item.currentPrice !== null && !item.inStock;
-      if (status === "unreadable") return item.currentPrice === null;
-      return true;
-    });
+  const mappedItems = rawItems.map((item) => ({
+    ...item,
+    imageUrl: resolveProductImage(item.market, item.sku, item.imageUrl),
+  }));
+
+  const baseItems = market
+    ? mappedItems.filter((item) => item.market === market)
+    : mappedItems;
+
+  const statusCounts = {
+    changed: baseItems.filter((item) => changedToday(item.lastChangedAt)).length,
+    outOfStock: baseItems.filter((item) => item.currentPrice !== null && !item.inStock).length,
+    unreadable: baseItems.filter((item) => item.currentPrice === null).length,
+  };
+
+  const allItems = mappedItems.filter((item) => {
+    if (status === "changed") return changedToday(item.lastChangedAt);
+    if (status === "out-of-stock") return item.currentPrice !== null && !item.inStock;
+    if (status === "unreadable") return item.currentPrice === null;
+    return true;
+  });
 
   const priceHistoryMap = recentHistory.reduce<Record<string, number[]>>((map, item) => {
     if (item.price === null || Number.isNaN(item.price)) return map;
@@ -78,6 +89,8 @@ export default async function ReportPage({
     }
   }
 
+  const marketParam = market ? `&market=${encodeURIComponent(market)}` : "";
+
   return (
     <main className="min-h-screen bg-[#07101D] text-white">
       <div className="mx-auto max-w-[1540px] px-4 py-4 md:px-6 md:py-5">
@@ -95,6 +108,21 @@ export default async function ReportPage({
           ]}
         />
 
+        <section className="mb-3 grid grid-cols-3 overflow-hidden rounded-xl border border-white/[0.08] bg-[#0C1626]">
+          <Link href={`/report?status=changed${marketParam}`} className={`px-3 py-2.5 text-center transition hover:bg-white/[0.04] ${status === "changed" ? "bg-emerald-400/[0.08]" : ""}`}>
+            <div className="text-[9px] uppercase tracking-[0.09em] text-slate-500">Bugün değişen</div>
+            <div className="mt-1 text-lg font-semibold text-emerald-300">{statusCounts.changed}</div>
+          </Link>
+          <Link href={`/report?status=out-of-stock${marketParam}`} className={`border-x border-white/[0.07] px-3 py-2.5 text-center transition hover:bg-white/[0.04] ${status === "out-of-stock" ? "bg-rose-400/[0.08]" : ""}`}>
+            <div className="text-[9px] uppercase tracking-[0.09em] text-slate-500">Stok dışı</div>
+            <div className="mt-1 text-lg font-semibold text-rose-300">{statusCounts.outOfStock}</div>
+          </Link>
+          <Link href={`/report?status=unreadable${marketParam}`} className={`px-3 py-2.5 text-center transition hover:bg-white/[0.04] ${status === "unreadable" ? "bg-amber-400/[0.08]" : ""}`}>
+            <div className="text-[9px] uppercase tracking-[0.09em] text-slate-500">Okunamayan</div>
+            <div className="mt-1 text-lg font-semibold text-amber-300">{statusCounts.unreadable}</div>
+          </Link>
+        </section>
+
         {status && (
           <div className="mb-3 flex items-center justify-between rounded-xl border border-blue-400/15 bg-blue-500/[0.06] px-3 py-2 text-xs text-blue-200">
             <span>
@@ -102,7 +130,7 @@ export default async function ReportPage({
               {status === "out-of-stock" && "Stok dışı ürünler gösteriliyor"}
               {status === "unreadable" && "Verisi okunamayan ürünler gösteriliyor"}
             </span>
-            <a href={market ? `/report?market=${encodeURIComponent(market)}` : "/report"} className="rounded-md border border-blue-300/20 px-2 py-1 text-[10px]">Filtreyi temizle</a>
+            <Link href={market ? `/report?market=${encodeURIComponent(market)}` : "/report"} className="rounded-md border border-blue-300/20 px-2 py-1 text-[10px]">Filtreyi temizle</Link>
           </div>
         )}
 

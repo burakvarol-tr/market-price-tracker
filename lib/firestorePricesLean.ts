@@ -54,12 +54,15 @@ async function readLatestPricesLean(): Promise<PriceRecord[]> {
             : getFixedProductImage(sku),
       } satisfies PriceRecord;
     })
-    .sort((a, b) => a.name.localeCompare(b.name, "tr"));
+    .sort((a, b) => {
+      const marketOrder = a.market.localeCompare(b.market, "tr");
+      return marketOrder !== 0 ? marketOrder : a.name.localeCompare(b.name, "tr");
+    });
 }
 
 const getCachedLatestPrices = unstable_cache(
   readLatestPricesLean,
-  ["latest-prices-lean-v1"],
+  ["latest-prices-lean-v2"],
   { revalidate: 600 }
 );
 
